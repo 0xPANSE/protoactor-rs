@@ -1,0 +1,7 @@
+[workspace]
+members=[
+    "protoactor",
+    "protoactor-remote",
+    "protoactor-cluster",
+    "protoactor-persistence",
+]
