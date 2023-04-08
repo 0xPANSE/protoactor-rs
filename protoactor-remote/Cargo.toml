@@ -8,8 +8,8 @@ repository = "https://github.com/0xPANSE/protoactor-rs"
 license = "Apache-2.0"
 license-file = "../LICENSE"
 readme = "../README.md"
-keywords = ["actor", "actors", "actor-model", "actor-system", "actor-framework", "distributed", "distributed-systems"]
-categories = ["concurrency", "asynchronous", "network-programming", "actor-model", "actor-framework", "distributed-systems"]
+keywords = ["actor", "actor-system", "distributed"]
+categories = ["concurrency", "asynchronous", "network-programming"]
 documentation = "https://docs.rs/protoactor-remote"
 
 [dependencies]
