@@ -1,14 +1,12 @@
-pub fn add(left: usize, right: usize) -> usize {
-    left + right
-}
+//! # ProtoActor
+//!
+//! This is a Rust implementation of the [ProtoActor](https://github.com/asynkron/protoactor-dotnet)
+//! project.
 
-#[cfg(test)]
-mod tests {
-    use super::*;
 
-    #[test]
-    fn it_works() {
-        let result = add(2, 2);
-        assert_eq!(result, 4);
-    }
-}
+#[cfg(feature = "remote")]
+pub use protoactor_remote as remote;
+#[cfg(feature = "cluster")]
+pub use protoactor_cluster as cluster;
+#[cfg(feature = "persistence")]
+pub use protoactor_persistence as persistence;
