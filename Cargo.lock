@@ -226,9 +226,9 @@ name = "protoactor"
 version = "0.1.0"
 dependencies = [
  "futures",
- "protoactor-cluster",
- "protoactor-persistence",
- "protoactor-remote",
+ "protoactor-cluster 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protoactor-persistence 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "protoactor-remote 0.1.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "tokio",
 ]
 
@@ -237,12 +237,30 @@ name = "protoactor-cluster"
 version = "0.1.0"
 
 [[package]]
+name = "protoactor-cluster"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7d2f1b4b93c451d00e01fad2a85d7d5489f453a580e80d9318e77e0d99ccf9e5"
+
+[[package]]
 name = "protoactor-persistence"
+version = "0.1.0"
+
+[[package]]
+name = "protoactor-persistence"
+version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4bc5b89c711c2b8a4320fa53439ed0ba6211c205ffbbc375297ae87d61c444ff"
+
+[[package]]
+name = "protoactor-remote"
 version = "0.1.0"
 
 [[package]]
 name = "protoactor-remote"
 version = "0.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "91ef3738cebf9a215dff22e4d46b693c4a2f3f35d4045832ed9f653664b1afa3"
 
 [[package]]
 name = "quote"
