@@ -1,7 +1,7 @@
-mod root;
+mod root_context;
 
 use crate::actor::{Actor, ActorRef};
-pub use root::RootContext;
+pub use root_context::RootContext;
 
 // The Context struct provides an actor with the necessary context to interact
 // with the actor system, such as sending messages or spawning child actors.

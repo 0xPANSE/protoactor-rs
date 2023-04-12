@@ -17,13 +17,14 @@ pub const CLIENT: &str = "$client";
 /// # Example
 ///
 /// ```
-/// use protoactor::config::ActorSystemConfig;
+/// use protoactor::config::{ActorSystemConfig, ActorSystemConfigBuilder};
 /// use protoactor::actor_system::ActorSystem;
 ///
 /// // using builder pattern
-/// let config = ActorSystemConfig::default()
+/// let config = ActorSystemConfigBuilder::new()
 ///     .with_name("my_actor_system")
-///     .with_worker_threads(4);
+///     .with_worker_threads(4)
+///     .build();
 ///
 /// let system = ActorSystem::new(config);
 /// // Perform operations with the actor system.
@@ -78,7 +79,7 @@ impl Default for ActorSystemConfig {
         // detect number of logical cores
         let num_cpus = num_cpus::get();
         ActorSystemConfig {
-            name: "protoactor".to_string(),
+            name: "local".to_string(),
             worker_threads: num_cpus,
             host: NO_HOST.to_string(),
             port: 0,

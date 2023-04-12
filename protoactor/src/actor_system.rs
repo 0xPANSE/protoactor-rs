@@ -5,11 +5,11 @@
 //! scheduling, and supervision. The `ActorSystem` is a fundamental component of the ProtoActor framework.
 //!
 
-use crate::actor::{Actor, ActorRef};
-use crate::context::{Context, RootContext};
-use crate::props::Props;
-use std::ops::DerefMut;
-use std::sync::{Arc, Weak};
+mod root_context;
+
+use crate::config::ActorSystemConfig;
+use root_context::RootContext;
+use std::sync::Arc;
 use tokio::sync::Notify;
 
 pub struct ActorSystem {
@@ -34,14 +34,8 @@ impl ActorSystemInner {
 }
 
 impl ActorSystem {
-    pub fn new() -> Self {
-        let actor_system_inner = Arc::new(ActorSystemInner::new());
-        let root_context = RootContext::new(actor_system_inner.clone());
-
-        Self {
-            inner: actor_system_inner,
-            root: root_context,
-        }
+    pub fn new(_config: ActorSystemConfig) -> Self {
+        Default::default()
     }
 
     pub fn root(&self) -> &RootContext {
@@ -60,14 +54,24 @@ impl ActorSystem {
     }
 }
 
+impl Default for ActorSystem {
+    fn default() -> Self {
+        let actor_system_inner = Arc::new(ActorSystemInner::new());
+        let root_context = RootContext::new(actor_system_inner.clone());
+
+        Self {
+            inner: actor_system_inner,
+            root: root_context,
+        }
+    }
+}
+
 #[cfg(test)]
 mod test {
     use super::*;
-    use crate::actor::{Actor, Handler, Message};
+    use crate::actor::{Actor, Handler};
+    use crate::message::Message;
     use crate::props::Props;
-    use std::sync::atomic::{AtomicUsize, Ordering};
-    use std::sync::Arc;
-    use tokio::time::{timeout, Duration};
 
     struct TestActor {
         counter: usize,
@@ -80,7 +84,7 @@ mod test {
     }
 
     impl Actor for TestActor {
-        type Context = Context<Self>;
+        type Context = ();
     }
 
     impl Handler<Increment> for TestActor {
@@ -91,7 +95,7 @@ mod test {
 
     #[tokio::test]
     async fn test_actor_system() {
-        let system = ActorSystem::new();
+        let system = ActorSystem::default();
         let props = Props::from_producer(|| TestActor { counter: 0 });
         let pid = system.root().spawn(props);
 

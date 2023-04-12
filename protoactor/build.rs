@@ -4,7 +4,6 @@ use prost_build::Config;
 use std::fmt::Write as FmtWrite;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
-use std::path::Path;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // println!("cargo:rerun-if-changed=src/proto.proto");
@@ -28,6 +27,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
+#[allow(dead_code)]
 /// Post-process the generated code to remove the PID message including its attributes.
 fn post_process_generated_code(file_path: &str) -> Result<(), Box<dyn std::error::Error>> {
     let input_file = File::open(file_path)?;

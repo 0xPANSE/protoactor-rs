@@ -1,10 +1,12 @@
-mod actor_process;
-mod actor_ref;
-mod message;
+use crate::actor_process::ActorProcess;
+use crate::actor_ref::ActorRef;
+use crate::message::Message;
 
-pub use actor_process::ActorProcess;
-pub use actor_ref::ActorRef;
-pub use message::Message;
+mod context;
+mod handler;
+
+pub use context::Context;
+pub use handler::Handler;
 
 /// Actor is a trait that should be implemented by all actors in the system.
 /// This trait provides a `receive` method that actors use to handle incoming messages.
@@ -21,13 +23,12 @@ pub trait Actor: Send + 'static {
     /// in `Actor::started()` does nothing.
     /// # Example
     /// ```
-    /// use protoactor::actor::Actor;
-    /// use protoactor::context::Context;
+    /// use protoactor::prelude::*;
     ///
     /// struct MyActor;
     ///
     /// impl Actor for MyActor {
-    ///    type Context = Context<Self>;
+    ///    type Context = ();
     ///
     ///   fn started(&mut self, ctx: &mut Self::Context) {
     ///      println!("MyActor started");
@@ -43,13 +44,12 @@ pub trait Actor: Send + 'static {
     /// If not implemented, the default implementation does nothing.
     /// # Example
     /// ```
-    /// use protoactor::actor::Actor;
-    /// use protoactor::context::Context;
+    /// use protoactor::prelude::*;
     ///
     /// struct MyActor;
     ///
     /// impl Actor for MyActor {
-    ///     type Context = Context<Self>;
+    ///     type Context = ();
     ///    
     ///     fn stopped(&mut self, ctx: &mut Self::Context) {
     ///         println!("MyActor stopped");
@@ -60,43 +60,6 @@ pub trait Actor: Send + 'static {
 }
 
 pub struct MessageResult<M: Message>(pub M);
-
-// The Handler trait defines the interface for handling messages of a specific
-// type. It is implemented by actors that can process messages of that type.
-/// # Example
-/// ```
-/// use protoactor::actor::{Actor, Handler, Message};
-///
-/// struct MyMessage;
-///
-/// impl Message for MyMessage {
-///     type Result = ();
-/// }
-///
-/// struct MyActor;
-///
-/// impl Actor for MyActor {
-///     type Context = ();
-/// }
-///
-/// impl Handler<MyMessage> for MyActor {
-///     fn handle(&mut self, msg: MyMessage, ctx: &mut Self::Context) -> Self::Result {
-///         println!("Received message");
-///     }
-/// }
-///
-/// ```
-pub trait Handler<M>
-where
-    Self: Actor,
-    M: Message,
-    M::Result: Send + 'static,
-{
-    /// The method called to handle a specific message type.
-    fn handle(&mut self, msg: M, ctx: &mut Self::Context) -> M::Result;
-
-    // todo: #[async_trait], and check the cost of it
-}
 
 #[cfg(test)]
 mod tests {

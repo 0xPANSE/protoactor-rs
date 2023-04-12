@@ -1,13 +1,10 @@
-use crate::actor::{Actor, Handler};
-use std::marker::PhantomData;
 use std::sync::Arc;
-use tokio::sync::oneshot;
 
 /// Marker trait for messages. The `Result` associated type is used to specify the type of the
 /// result that will be returned when the message is sent to an actor.
 /// # Example
 /// ```
-/// use protoactor::actor::Message;
+/// use protoactor::message::Message;
 ///
 /// struct MyMessage;
 ///

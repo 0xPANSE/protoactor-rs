@@ -1,5 +1,7 @@
-use crate::actor::{Actor, ActorRef, Handler, Message};
+use crate::actor::{Actor, Handler};
+use crate::actor_ref::ActorRef;
 use crate::actor_system::ActorSystemInner;
+use crate::message::Message;
 use crate::props::Props;
 use std::sync::Arc;
 use tokio::sync::oneshot;

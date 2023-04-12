@@ -4,19 +4,23 @@
 //!
 
 pub mod actor;
+pub mod actor_process;
+pub mod actor_ref;
 pub mod actor_system;
 pub mod config;
-pub mod context;
 pub mod mailbox;
+pub mod message;
 pub mod props;
 pub mod proto;
 
 /// prelude module
 pub mod prelude {
-    pub use crate::actor::{Actor, ActorProcess, ActorRef, Message};
-    pub use crate::actor_system::ActorSystem;
-    pub use crate::config::ActorSystemConfig;
-    pub use crate::context::Context;
+    pub use crate::actor::{Actor, Context, Handler};
+    pub use crate::actor_process::ActorProcess;
+    pub use crate::actor_ref::ActorRef;
+    pub use crate::mailbox::Mailbox;
+    pub use crate::message::Message;
+    pub use crate::props::Props;
 }
 
 #[cfg(feature = "cluster")]

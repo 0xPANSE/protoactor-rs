@@ -1,5 +1,4 @@
 use crate::actor::Actor;
-use crate::context::Context;
 use std::sync::Arc;
 
 pub struct Props<A: Actor> {
