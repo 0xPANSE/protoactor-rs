@@ -128,12 +128,15 @@ where
 /// is not None in case Debug is not implemented for the type.
 /// # Example
 /// ```
-/// use protoactor::message::Message;
+/// // you need to enable the `derive` feature to use this macro
+/// use protoactor::derive::Message;
 ///
 /// #[derive(Message)]
 /// struct MyMessage {
 ///     #[obfuscated]
 ///     obfuscated: Option<String>,
+///     #[hidden]
+///     invisible: String,
 /// }
 ///
 /// #[derive(Message)]
@@ -142,6 +145,13 @@ where
 ///     NotObfuscated(String),
 ///     Another{ name: String, #[obfuscated] secret: Option<String> },
 /// }
+///
+/// let my_message = MyMessage {
+///     obfuscated: Some("secret".to_string()),
+///     invisible: "not visible in logs".to_string()
+/// };
+///
+/// assert_eq!("MyMessage { obfuscated: \"<obfuscated>\" }", format!("{:?}", my_message));
 /// ```
 #[macro_export]
 macro_rules! impl_message {
