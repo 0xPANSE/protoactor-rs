@@ -1,7 +1,9 @@
 [workspace]
 members=[
     "protoactor",
-    "protoactor-remote",
     "protoactor-cluster",
+    "protoactor-derive",
     "protoactor-persistence",
+    "protoactor-remote",
+    "samples",
 ]

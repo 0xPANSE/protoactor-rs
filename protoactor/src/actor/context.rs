@@ -1,71 +1,124 @@
-use crate::actor::Actor;
-use crate::actor_ref::ActorRef;
-use crate::actor_system::ActorSystem;
-use crate::prelude::Props;
+use crate::actor::{Actor, ActorRef, Handler};
+use crate::actor_system::inner::ActorSystemInner;
+use crate::mailbox::Mailbox;
+use crate::message::Message;
+use std::sync::{Arc, RwLock};
 
-/// The Context trait represents the runtime context of an actor, providing access
-/// to actor-related functionality like spawning child actors, watching other actors,
-/// and stopping actors.
-pub trait Context<A: Actor> {
-    /// Returns the actor reference associated with this context.
-    /// This reference can be used to send messages to the actor.
-    fn actor_ref(&self) -> ActorRef<A>;
-
-    /// Spawns a new actor using the given props and returns its actor reference.
-    /// The spawned actor will be a child of the current actor.
-    fn spawn<B>(&self, props: Props<B>) -> ActorRef<B>
-    where
-        B: Actor;
-
-    /// Stops the actor associated with the given actor reference.
-    /// This will trigger the actor's stopping lifecycle events and
-    /// eventually terminate the actor.
-    fn stop(&self, actor_ref: &ActorRef<A>);
-
-    /// Adds the actor associated with the given actor reference to the watch list.
-    /// The watching actor will receive a terminated message if the watched actor is terminated.
-    fn watch(&self, actor_ref: &ActorRef<A>);
-
-    /// Removes the actor associated with the given actor reference from the watch list.
-    /// The watching actor will no longer receive a terminated message if the watched actor is terminated.
-    fn unwatch(&self, actor_ref: &ActorRef<A>);
+/// `Context` represents the runtime environment of an actor.
+///
+/// It provides a way to interact with the actor's state and manage its lifecycle.
+/// The `Context` wraps an `Arc<Mutex<ContextInner<A>>>`, providing thread-safe access
+/// to the inner context state. This struct also includes methods for working with remote
+/// actors and sending messages between them.
+pub struct Context<A: Actor> {
+    inner: Arc<RwLock<ContextInner<A>>>,
 }
 
-/// The ContextImpl struct holds the actor's state and implements the Context trait.
-/// It provides the runtime context for the actor, allowing it to interact with the
-/// actor system and other actors.
-pub struct ContextImpl<A: Actor> {
-    /// The actor reference associated with this context.
-    /// This reference can be used to send messages to the actor.
-    actor_ref: ActorRef<A>,
-    /// A reference to the actor system that manages the actors.
-    /// The actor system provides facilities for managing the lifecycle of actors
-    /// and sending messages between them.
-    actor_system: ActorSystem,
-}
-
-/// Implementing the Context trait for ContextImpl.
-impl<A: Actor> Context<A> for ContextImpl<A> {
-    fn actor_ref(&self) -> ActorRef<A> {
-        todo!()
+impl<A> Context<A>
+where
+    A: Actor,
+{
+    /// Creates a new instance of `Context`.
+    pub(crate) fn new(mailbox: Mailbox<A>, actor_system: Arc<RwLock<ActorSystemInner>>) -> Self {
+        let sender = mailbox.get_sender();
+        let inner = ContextInner {
+            mailbox,
+            actor_system: actor_system.clone(),
+            actor: None,
+            actor_ref: ActorRef::new(actor_system, sender),
+        };
+        Context {
+            inner: Arc::new(RwLock::new(inner)),
+        }
     }
 
-    fn spawn<B>(&self, props: Props<B>) -> ActorRef<B>
+    pub(crate) fn initialize(&mut self, actor: A) {
+        let mut inner = self.inner.write().unwrap();
+        inner.actor = Some(actor);
+    }
+
+    pub(crate) fn actor_ref(&self) -> ActorRef<A> {
+        self.inner.read().unwrap().actor_ref.clone()
+    }
+
+    /// Sends a message to the specified actor.
+    pub async fn send<M>(&self, target: ActorRef<A>, msg: M)
     where
-        B: Actor,
+        M: Message + Send + 'static,
+        M::Result: Send + 'static,
+        A: Handler<M>,
     {
-        todo!()
+        let inner = self.inner.read().unwrap();
+        inner.send(target, msg).await;
     }
 
-    fn stop(&self, actor_ref: &ActorRef<A>) {
-        todo!()
+    /// Responds to the sender of the current message. If sender is not available, this method
+    /// does nothing except logging an warning.
+    pub fn respond<M>(&self, msg: M) -> M::Result
+    where
+        M: Message + Send + 'static,
+        M::Result: Send + 'static,
+        A: Handler<M>,
+    {
+        todo!("Implement Context::respond")
     }
 
-    fn watch(&self, actor_ref: &ActorRef<A>) {
-        todo!()
+    /// Watches the specified actor. If the actor is terminated, the current actor will be
+    /// notified.
+    pub fn watch(&self, target: ActorRef<A>) {
+        todo!("Implement Context::watch")
     }
 
-    fn unwatch(&self, actor_ref: &ActorRef<A>) {
-        todo!()
+    /// Unwatches the specified actor.
+    pub fn unwatch(&self, target: ActorRef<A>) {
+        todo!("Implement Context::unwatch")
     }
+
+    /// Forwards the current message to the specified actor.
+    /// The current message will be sent to the specified actor as is.
+    pub fn forward<M>(&self, target: ActorRef<A>)
+    where
+        M: Message + Send + 'static,
+        M::Result: Send + 'static,
+        A: Handler<M>,
+    {
+        todo!("Implement Context::forward")
+    }
+
+    /// Captures the current message or envelope for the context. Use this to stash the current
+    /// message for later processing.
+    pub fn stash(&self) {
+        todo!("Implement Context::stash")
+    }
+}
+
+/// `ContextInner` represents the inner state of a `Context`.
+///
+/// It can store any additional state needed for the context, such as a reference
+/// to the actor or other components. This struct is used internally by `Context`.
+pub struct ContextInner<A: Actor> {
+    mailbox: Mailbox<A>,
+    actor_system: Arc<RwLock<ActorSystemInner>>,
+    actor: Option<A>,
+    actor_ref: ActorRef<A>,
+}
+
+impl<A> ContextInner<A>
+where
+    A: Actor,
+{
+    /// Creates a new instance of `ContextInner` with the given actor.
+
+    /// Sends a message to the specified actor using the actor's context.
+    pub async fn send<M>(&self, target: ActorRef<A>, msg: M)
+    where
+        M: Message + Send + 'static,
+        M::Result: Send + 'static,
+        A: Handler<M>,
+    {
+        // Sending logic will be implemented here, including remote communication
+        // when the target actor is on another node.
+    }
+
+    // Additional methods to interact with the inner context state can be added here.
 }

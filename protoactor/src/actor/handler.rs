@@ -1,5 +1,5 @@
 use crate::actor::Actor;
-use crate::message::Message;
+use crate::message::{Message, MessageResult};
 
 // The Handler trait defines the interface for handling messages of a specific
 // type. It is implemented by actors that can process messages of that type.

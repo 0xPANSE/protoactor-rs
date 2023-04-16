@@ -4,13 +4,14 @@ use prost_build::Config;
 use std::fmt::Write as FmtWrite;
 use std::fs::File;
 use std::io::{BufRead, BufReader, Write};
+// use std::path::Path;
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     // println!("cargo:rerun-if-changed=src/proto.proto");
 
     Config::new()
         .type_attribute(".", "#[derive(serde::Serialize, serde::Deserialize)]")
-        .out_dir("src/proto")
+        // .out_dir("src/proto")
         .compile_protos(&["src/proto.proto"], &[""])?;
 
     // note: probably not needed since PID will be wrapped into ActorRef

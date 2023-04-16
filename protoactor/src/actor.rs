@@ -1,4 +1,3 @@
-use crate::actor_process::ActorProcess;
 use crate::actor_ref::ActorRef;
 use crate::message::Message;
 
@@ -28,7 +27,7 @@ pub trait Actor: Send + 'static {
     /// struct MyActor;
     ///
     /// impl Actor for MyActor {
-    ///    type Context = ();
+    ///    type Context = Context<Self>;
     ///
     ///   fn started(&mut self, ctx: &mut Self::Context) {
     ///      println!("MyActor started");

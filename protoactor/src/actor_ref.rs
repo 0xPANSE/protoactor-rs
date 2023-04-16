@@ -1,53 +1,70 @@
-use crate::actor_process::ActorProcess;
-use crate::message::Message;
+use crate::actor::Handler;
+use crate::actor_system::inner::ActorSystemInner;
+use crate::mailbox::MailboxSender;
+use crate::message::{Envelope, Message, MessageEnvelope};
 use crate::prelude::Actor;
-use crate::proto::Pid;
 use std::marker::PhantomData;
-use std::ops::Deref;
-use std::sync::Arc;
-use tokio::sync::oneshot;
+use std::sync::{Arc, RwLock};
+use uuid::Uuid;
 
 /// The ActorRef struct is a reference to an actor process.
 /// It holds the `Pid` that uniquely identifies the actor process and the `ActorProcess` that handles
 /// the actual processing of messages for the actor. The tell method is used to send a message to
 /// the actor process. The `Deref` trait is implemented to allow getting the `Pid` from an `ActorRef`.
-#[derive(Clone)]
 pub struct ActorRef<A: Actor> {
-    // The Pid that uniquely identifies the actor process.
-    pid: Pid,
-
-    // The ActorProcess that handles the actual processing of messages for the actor.
-    process: Arc<ActorProcess>,
-
-    #[doc(hidden)]
+    id: Uuid,
+    sender: MailboxSender<A>,
+    actor_system: Arc<RwLock<ActorSystemInner>>,
     _marker: PhantomData<A>,
 }
 
 impl<A: Actor> ActorRef<A> {
-    pub(crate) fn new(pid: Pid, process: Arc<ActorProcess>) -> Self {
-        ActorRef {
-            pid,
-            process,
+    pub(crate) fn new(
+        actor_system: Arc<RwLock<ActorSystemInner>>,
+        mailbox: MailboxSender<A>,
+    ) -> Self {
+        let id = Uuid::new_v4();
+        Self {
+            id,
+            sender: mailbox,
+            actor_system,
             _marker: PhantomData,
         }
     }
 
-    pub fn send<M>(&self, msg: M, tx: oneshot::Sender<M::Result>)
+    pub(crate) fn new_named(
+        actor_system: Arc<RwLock<ActorSystemInner>>,
+        name: String,
+        sender: MailboxSender<A>,
+    ) -> Self {
+        let id = Uuid::new_v5(&Uuid::NAMESPACE_OID, name.as_bytes());
+        Self {
+            id,
+            sender,
+            actor_system,
+            _marker: PhantomData,
+        }
+    }
+
+    pub async fn send_user_message<M>(&self, envelope: MessageEnvelope<A, M>)
     where
-        M: Message,
+        M: Message + Send + 'static,
+        M::Result: Send + 'static,
+        A: Handler<M>,
     {
-        todo!("Implement message sending logic here")
+        if let Err(e) = self.sender.send::<M>(Box::new(envelope)).await {
+            log::error!("Failed to send message: {}", e);
+        }
     }
 }
 
-// Implement the Deref trait to allow getting the Pid from an ActorRef.
-// This allows using the `*` operator to get the Pid from an ActorRef and use pid in user
-// messages since Pid can be used in Grpc messages that are sent to other actor systems in the
-// cluster.
-impl<A: Actor> Deref for ActorRef<A> {
-    type Target = Pid;
-
-    fn deref(&self) -> &Self::Target {
-        &self.pid
+impl<A: Actor> Clone for ActorRef<A> {
+    fn clone(&self) -> Self {
+        Self {
+            id: self.id,
+            sender: self.sender.clone(),
+            actor_system: Arc::clone(&self.actor_system),
+            _marker: PhantomData,
+        }
     }
 }

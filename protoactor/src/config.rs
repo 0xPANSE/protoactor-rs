@@ -74,6 +74,13 @@ pub struct ActorSystemConfig {
     pub configure_root_context: fn(context: &mut crate::actor::Context) -> &mut crate::actor::Context,*/
 }
 
+impl ActorSystemConfig {
+    /// Creates a new `ActorSystemConfig` struct.
+    pub fn builder() -> ActorSystemConfigBuilder {
+        ActorSystemConfigBuilder::new()
+    }
+}
+
 impl Default for ActorSystemConfig {
     fn default() -> Self {
         // detect number of logical cores

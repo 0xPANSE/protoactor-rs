@@ -3,6 +3,13 @@
 //! This is a Rust port of the [ProtoActor](https://github.com/asynkron/protoactor-dotnet) framework.
 //!
 
+extern crate core;
+
+#[cfg(feature = "derive")]
+pub mod derive {
+    pub use protoactor_derive::*;
+}
+
 pub mod actor;
 pub mod actor_process;
 pub mod actor_ref;
@@ -12,6 +19,7 @@ pub mod mailbox;
 pub mod message;
 pub mod props;
 pub mod proto;
+pub mod utils;
 
 /// prelude module
 pub mod prelude {

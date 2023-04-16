@@ -25,31 +25,149 @@
 //!
 //! The PID is a serializable structure that can be sent to another actor or another actor system.
 
+use crate::actor_process::ActorProcess;
+use bytes::{Buf, BufMut};
+use prost::encoding::{DecodeContext, WireType};
+use prost::DecodeError;
 use serde::{Deserialize, Serialize};
+use std::any::Any;
+use std::sync::Arc;
 
 #[allow(clippy::derive_partial_eq_without_eq)]
-#[derive(Clone, PartialEq, ::prost::Message, Serialize, Deserialize)]
 pub struct Pid {
-    /// The address of the actor system that the actor is running in.
-    /// For a remote actor, it is the address of the remote actor system where the actor is hosted
-    /// In case of single-node actor system, it is the address of the local actor system, and value
-    /// is equal to `crate::config::NODE_HOST` ("nohost").
     #[prost(string, tag = "1")]
     pub address: ::prost::alloc::string::String,
-
-    /// the Id field of a PID is a unique string identifier for an actor instance within an actor system. It is automatically generated when an actor is spawned, and it is used to identify and address the specific actor instance when sending messages.
-    ///
-    /// Examples of generated Id values might look like:
-    /// * "actor-1"
-    /// * "user-15"
-    /// * "device-7abf34c9"
-    ///
-    /// These identifiers are usually a combination of a prefix that provides some context about
-    /// the actor and a unique value (e.g., a number, UUID, or a combination of both) to
-    /// differentiate between different instances of actors.
     #[prost(string, tag = "2")]
     pub id: ::prost::alloc::string::String,
-
     #[prost(uint32, tag = "3")]
     pub request_id: u32,
+
+    pub process: Option<Arc<ActorProcess<dyn Any>>>,
+}
+
+impl Clone for Pid {
+    #[inline]
+    fn clone(&self) -> Pid {
+        Pid {
+            address: Clone::clone(&self.address),
+            id: Clone::clone(&self.id),
+            request_id: Clone::clone(&self.request_id),
+            process: Clone::clone(&self.process),
+        }
+    }
+}
+
+impl PartialEq for Pid {
+    #[inline]
+    fn eq(&self, other: &Pid) -> bool {
+        self.address == other.address && self.id == other.id && self.request_id == other.request_id
+    }
+}
+
+impl ::prost::Message for Pid {
+    #[allow(unused_variables)]
+    fn encode_raw<B>(&self, buf: &mut B)
+    where
+        B: ::prost::bytes::BufMut,
+    {
+        if self.address != "" {
+            ::prost::encoding::string::encode(1u32, &self.address, buf);
+        }
+        if self.id != "" {
+            ::prost::encoding::string::encode(2u32, &self.id, buf);
+        }
+        if self.request_id != 0u32 {
+            ::prost::encoding::uint32::encode(3u32, &self.request_id, buf);
+        }
+    }
+    #[allow(unused_variables)]
+    fn merge_field<B>(
+        &mut self,
+        tag: u32,
+        wire_type: ::prost::encoding::WireType,
+        buf: &mut B,
+        ctx: ::prost::encoding::DecodeContext,
+    ) -> ::core::result::Result<(), ::prost::DecodeError>
+    where
+        B: ::prost::bytes::Buf,
+    {
+        const STRUCT_NAME: &'static str = "Pid";
+        match tag {
+            1u32 => {
+                let mut value = &mut self.address;
+                ::prost::encoding::string::merge(wire_type, value, buf, ctx).map_err(|mut error| {
+                    error.push(STRUCT_NAME, "address");
+                    error
+                })
+            }
+            2u32 => {
+                let mut value = &mut self.id;
+                ::prost::encoding::string::merge(wire_type, value, buf, ctx).map_err(|mut error| {
+                    error.push(STRUCT_NAME, "id");
+                    error
+                })
+            }
+            3u32 => {
+                let mut value = &mut self.request_id;
+                ::prost::encoding::uint32::merge(wire_type, value, buf, ctx).map_err(|mut error| {
+                    error.push(STRUCT_NAME, "request_id");
+                    error
+                })
+            }
+            _ => ::prost::encoding::skip_field(wire_type, tag, buf, ctx),
+        }
+    }
+    #[inline]
+    fn encoded_len(&self) -> usize {
+        0 + if self.address != "" {
+            ::prost::encoding::string::encoded_len(1u32, &self.address)
+        } else {
+            0
+        } + if self.id != "" {
+            ::prost::encoding::string::encoded_len(2u32, &self.id)
+        } else {
+            0
+        } + if self.request_id != 0u32 {
+            ::prost::encoding::uint32::encoded_len(3u32, &self.request_id)
+        } else {
+            0
+        }
+    }
+    fn clear(&mut self) {
+        self.address.clear();
+        self.id.clear();
+        self.request_id = 0u32;
+        self.process = None;
+    }
+}
+
+impl Default for Pid {
+    fn default() -> Self {
+        Pid {
+            address: ::prost::alloc::string::String::new(),
+            id: ::prost::alloc::string::String::new(),
+            request_id: 0u32,
+            process: None,
+        }
+    }
+}
+
+impl Debug for Pid {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        f.debug_struct("Pid")
+            .field("address", self.address)
+            .field("id", self.id)
+            .field("request_id", self.request_id)
+            .finish()
+    }
+}
+
+#[automatically_derived]
+impl ::std::hash::Hash for Pid {
+    #[inline]
+    fn hash<H: ::std::hash::Hasher>(&self, state: &mut H) {
+        self.address.hash(state);
+        self.id.hash(state);
+        self.request_id.hash(state);
+    }
 }

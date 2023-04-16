@@ -7,7 +7,7 @@ description = "ProtoActor implementation in Rust"
 repository = "https://github.com/0xPANSE/protoactor-rs"
 license-file = "../LICENSE"
 readme = "../README.md"
-keywords = ["actor", "actor-system", "distributed"]
+keywords = ["protoactor", "actor", "actor-system"]
 categories = ["concurrency", "asynchronous", "network-programming"]
 documentation = "https://docs.rs/protoactor"
 
@@ -15,22 +15,27 @@ build = "build.rs"
 
 [dependencies]
 bytes = "1.1"
+flurry = "0.4.0"
 futures = "0.3"
 log = "0.4"
 num_cpus = "1.13"
 prost = "0.11.8"
-protoactor-remote = { version="0.1.0", optional = true }
+protoactor-derive = { path="../protoactor-derive", version="0.1.0", optional = true }
 protoactor-cluster = { version="0.1.0", optional = true }
+protoactor-remote = { version="0.1.0", optional = true }
 protoactor-persistence = { version="0.1.0", optional = true }
 serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.0", features = ["full", "test-util"] }
+uuid = { vresion = "0.8", features = ["v4", "v5"] }
+
 
 [build-dependencies]
 prost-build = "0.11.8"
 
 
 [features]
-default = []
+default = ["derive"]
+derive = ["protoactor-derive"]
 remote = ["protoactor-remote"]
 cluster = ["protoactor-remote", "protoactor-cluster"]
 persistence = ["protoactor-persistence"]
