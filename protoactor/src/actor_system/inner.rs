@@ -1,7 +1,9 @@
 use crate::actor::{Actor, ActorCell, Context};
 use crate::actor_ref::ActorRef;
 use crate::actor_system::root_context::RootContext;
+use crate::config::NO_HOST;
 use crate::prelude::Props;
+use crate::proto::Pid;
 use flurry::HashMap;
 use std::any::Any;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -22,7 +24,7 @@ impl ActorSystemInner {
         }
     }
 
-    pub(crate) fn spawn<A>(&self, props: Props<A>, root: RootContext) -> ActorRef<A>
+    pub(crate) fn spawn<A>(&self, props: &Props<A>, root: RootContext) -> ActorRef<A>
     where
         A: Actor<Context = Context<A>>,
     {
@@ -38,23 +40,25 @@ impl ActorSystemInner {
     pub(crate) fn spawn_named<A>(
         &self,
         name: String,
-        props: Props<A>,
+        props: &Props<A>,
         root: RootContext,
     ) -> ActorRef<A>
     where
         A: Actor<Context = Context<A>>,
     {
-        let registry = self.registry.pin();
-        if registry.contains_key(&name) {
+        let registry_pin = self.registry.pin();
+        if registry_pin.contains_key(&name) {
             panic!("Actor with name {} already exists", name);
         }
         let actor = (props.producer)(); // create the actor instance
         let mailbox = (props.mailbox_producer)(); // create the mailbox
         let mailbox_sender = mailbox.sender();
-        let actor_ref = ActorRef::new(root, mailbox_sender);
+        let pid = Pid::new(name.clone(), NO_HOST.to_string());
+        let actor_ref = ActorRef::new(pid, root, mailbox_sender);
         let ctx = Context::new(actor_ref.clone());
         let actor_cell = ActorCell::new(ctx, actor, mailbox);
-        registry.insert(name.clone(), Box::new(actor_ref.clone()));
+        registry_pin.insert(name.clone(), Box::new(actor_ref.clone()));
+        drop(registry_pin);
 
         let reg = self.registry.clone();
         tokio::spawn(async move {

@@ -33,10 +33,9 @@ where
 impl<A: Actor> Eq for ActorRef<A> {}
 
 impl<A: Actor> ActorRef<A> {
-    pub(crate) fn new(root_context: RootContext, mailbox: MailboxSender<A>) -> Self {
-        let id = Uuid::new_v4();
+    pub(crate) fn new(pid: Pid, root_context: RootContext, mailbox: MailboxSender<A>) -> Self {
         Self {
-            pid: Pid::new(id.to_string(), NO_HOST.to_string()),
+            pid,
             sender: mailbox,
             root_context,
             // _marker: PhantomData,

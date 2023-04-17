@@ -1,5 +1,7 @@
+use log::info;
 use protoactor::actor::{Actor, Context, Handler};
-use protoactor::message::Message;
+use protoactor::derive::Message;
+use std::thread::sleep;
 
 #[derive(Debug, Default)]
 pub struct PingPongActor {
@@ -10,15 +12,18 @@ impl Actor for PingPongActor {
     type Context = Context<Self>;
 }
 
-
+#[derive(Message)]
+#[rtype(usize)]
 pub struct Ping;
-
-impl Message for Ping {
-    type Result = usize;
-}
 
 impl Handler<Ping> for PingPongActor {
     fn handle(&mut self, msg: Ping, ctx: &mut Context<Self>) -> usize {
+        let self_ = ctx.self_();
+        let target = format!("PingPongActor[{}]", self_.id());
+        info!(
+            target: &target,
+            "PingPongActor received a message: {:?}", &msg
+        );
         self.counter += 1;
         self.counter
     }

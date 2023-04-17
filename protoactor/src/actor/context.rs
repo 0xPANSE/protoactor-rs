@@ -39,6 +39,10 @@ where
             stop_sender: RefCell::new(None),
         }
     }
+
+    pub fn self_(&self) -> ActorRef<A> {
+        self.actor_ref.clone()
+    }
 }
 
 impl<A> ActorContext<A> for Context<A>

@@ -23,14 +23,14 @@ impl RootContext {
         }
     }
 
-    pub fn spawn<A>(&self, props: Props<A>) -> ActorRef<A>
+    pub fn spawn<A>(&self, props: &Props<A>) -> ActorRef<A>
     where
         A: Actor<Context = Context<A>> + Send + Sync + 'static,
     {
         self.actor_system.spawn(props, self.clone())
     }
 
-    pub fn spawn_named<A>(&self, name: &str, props: Props<A>) -> ActorRef<A>
+    pub fn spawn_named<A>(&self, name: &str, props: &Props<A>) -> ActorRef<A>
     where
         A: Actor<Context = Context<A>>,
     {
