@@ -13,7 +13,7 @@ async fn main() {
     let actor_system = ActorSystem::new(config);
     let root_context = actor_system.root();
 
-    let props = Props::<PingPongActor>::from_producer(|| Default::default());
+    let props = Props::<PingPongActor>::from_producer(Default::default);
     let ping_pong_actor = root_context.spawn(props);
 
     let result: usize = root_context.request_async(ping_pong_actor, Ping).await;

@@ -1,70 +1,104 @@
 use crate::actor::Handler;
-use crate::actor_system::inner::ActorSystemInner;
+use crate::actor_system::root_context::RootContext;
+use crate::config::NO_HOST;
 use crate::mailbox::MailboxSender;
-use crate::message::{Envelope, Message, MessageEnvelope};
+use crate::message::{Message, MessageEnvelope};
 use crate::prelude::Actor;
-use std::marker::PhantomData;
-use std::sync::{Arc, RwLock};
+use crate::proto::Pid;
 use uuid::Uuid;
 
 /// The ActorRef struct is a reference to an actor process.
 /// It holds the `Pid` that uniquely identifies the actor process and the `ActorProcess` that handles
 /// the actual processing of messages for the actor. The tell method is used to send a message to
 /// the actor process. The `Deref` trait is implemented to allow getting the `Pid` from an `ActorRef`.
-pub struct ActorRef<A: Actor> {
-    id: Uuid,
+pub struct ActorRef<A>
+where
+    A: Actor,
+{
+    pid: Pid,
     sender: MailboxSender<A>,
-    actor_system: Arc<RwLock<ActorSystemInner>>,
-    _marker: PhantomData<A>,
+    root_context: RootContext,
+    // _marker: PhantomData<A>,
 }
 
+impl<A> PartialEq for ActorRef<A>
+where
+    A: Actor,
+{
+    fn eq(&self, other: &Self) -> bool {
+        self.pid.id == other.pid.id && self.pid.address == other.pid.address
+    }
+}
+
+impl<A: Actor> Eq for ActorRef<A> {}
+
 impl<A: Actor> ActorRef<A> {
-    pub(crate) fn new(
-        actor_system: Arc<RwLock<ActorSystemInner>>,
-        mailbox: MailboxSender<A>,
-    ) -> Self {
+    pub(crate) fn new(root_context: RootContext, mailbox: MailboxSender<A>) -> Self {
         let id = Uuid::new_v4();
         Self {
-            id,
+            pid: Pid::new(id.to_string(), NO_HOST.to_string()),
             sender: mailbox,
-            actor_system,
-            _marker: PhantomData,
+            root_context,
+            // _marker: PhantomData,
         }
     }
 
     pub(crate) fn new_named(
-        actor_system: Arc<RwLock<ActorSystemInner>>,
         name: String,
         sender: MailboxSender<A>,
+        root_context: RootContext,
     ) -> Self {
-        let id = Uuid::new_v5(&Uuid::NAMESPACE_OID, name.as_bytes());
         Self {
-            id,
+            pid: Pid::new(name, NO_HOST.to_string()),
             sender,
-            actor_system,
-            _marker: PhantomData,
+            root_context,
+            // _marker: PhantomData,
         }
     }
 
-    pub async fn send_user_message<M>(&self, envelope: MessageEnvelope<A, M>)
+    pub(crate) async fn send_user_message<M>(&self, envelope: MessageEnvelope<A, M>)
+    where
+        M: Message + Send + 'static,
+        M::Result: Send + 'static,
+        A: Actor + Handler<M>,
+    {
+        if let Err(e) = self.sender.send::<M>(Box::new(envelope)).await {
+            log::error!("Failed to send message: {}", e);
+        }
+    }
+
+    pub fn request_async<M>(&self, msg: M) -> tokio::sync::oneshot::Receiver<M::Result>
     where
         M: Message + Send + 'static,
         M::Result: Send + 'static,
         A: Handler<M>,
     {
-        if let Err(e) = self.sender.send::<M>(Box::new(envelope)).await {
-            log::error!("Failed to send message: {}", e);
-        }
+        let (tx, rx) = tokio::sync::oneshot::channel();
+        let message_envelope = MessageEnvelope::new(msg, Some(tx));
+        self.send_user_message(message_envelope);
+        rx
+    }
+
+    pub fn id(&self) -> String {
+        self.pid.id.clone()
+    }
+
+    pub fn address(&self) -> String {
+        self.pid.address.clone()
+    }
+
+    pub fn pid(&self) -> Pid {
+        self.pid.clone()
     }
 }
 
 impl<A: Actor> Clone for ActorRef<A> {
     fn clone(&self) -> Self {
         Self {
-            id: self.id,
+            pid: self.pid.clone(),
             sender: self.sender.clone(),
-            actor_system: Arc::clone(&self.actor_system),
-            _marker: PhantomData,
+            root_context: self.root_context.clone(),
+            // _marker: PhantomData,
         }
     }
 }

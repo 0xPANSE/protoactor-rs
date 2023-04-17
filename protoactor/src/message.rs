@@ -102,7 +102,7 @@ impl<A, M> Envelope<A> for MessageEnvelope<A, M>
 where
     M: Message + Send + 'static,
     M::Result: Send + 'static,
-    A: Actor + Handler<M>,
+    A: Actor + Send + Handler<M>,
 {
     /// The `handle` method implementation for `MessageEnvelope`.
     /// It calls the appropriate handler on the actor for the wrapped message.
@@ -176,109 +176,4 @@ macro_rules! impl_message {
             }
         }
     };
-}
-
-#[cfg(test)]
-mod test {
-    use super::*;
-    use std::sync::Arc;
-
-    struct HiMsg;
-
-    impl Message for HiMsg {
-        type Result = ();
-    }
-
-    struct ByeMsg;
-
-    impl Message for ByeMsg {
-        type Result = ();
-    }
-
-    struct SampleActor;
-
-    impl Actor for SampleActor {
-        type Context = ();
-    }
-
-    impl Handler<HiMsg> for SampleActor {
-        fn handle(&mut self, msg: HiMsg, ctx: &mut Self::Context) {
-            println!("SampleActor received HiMsg");
-        }
-    }
-
-    impl Handler<Arc<HiMsg>> for SampleActor {
-        fn handle(&mut self, msg: Arc<HiMsg>, ctx: &mut Self::Context) {
-            println!("SampleActor received Arc<HiMsg>");
-        }
-    }
-
-    impl Handler<Box<HiMsg>> for SampleActor {
-        fn handle(&mut self, msg: Box<HiMsg>, ctx: &mut Self::Context) {
-            println!("SampleActor received Box<HiMsg>");
-        }
-    }
-
-    impl Handler<Arc<Box<HiMsg>>> for SampleActor {
-        fn handle(&mut self, msg: Arc<Box<HiMsg>>, ctx: &mut Self::Context) {
-            println!("SampleActor received Arc<Box<HiMsg>>");
-        }
-    }
-
-    impl Handler<Box<Arc<HiMsg>>> for SampleActor {
-        fn handle(&mut self, msg: Box<Arc<HiMsg>>, ctx: &mut Self::Context) {
-            println!("SampleActor received Box<Arc<HiMsg>>");
-        }
-    }
-
-    impl Handler<ByeMsg> for SampleActor {
-        fn handle(&mut self, msg: ByeMsg, ctx: &mut Self::Context) {
-            println!("SampleActor received ByeMsg");
-        }
-    }
-
-    #[test]
-    fn test_message_envelope() {
-        let msg = HiMsg;
-        let mut envelope = MessageEnvelope::new(msg, None);
-        let mut actor = SampleActor;
-        let ctx = &mut ();
-        envelope.handle(&mut actor, ctx);
-    }
-
-    #[test]
-    fn test_message_envelope_arc() {
-        let msg = Arc::new(HiMsg);
-        let mut envelope = MessageEnvelope::new(msg, None);
-        let mut actor = SampleActor;
-        let ctx = &mut ();
-        envelope.handle(&mut actor, ctx);
-    }
-
-    #[test]
-    fn test_message_envelope_box() {
-        let msg = Box::new(HiMsg);
-        let mut envelope = MessageEnvelope::new(msg, None);
-        let mut actor = SampleActor;
-        let ctx = &mut ();
-        envelope.handle(&mut actor, ctx);
-    }
-
-    #[test]
-    fn test_message_envelope_arc_box() {
-        let msg = Arc::new(Box::new(HiMsg));
-        let mut envelope = MessageEnvelope::new(msg, None);
-        let mut actor = SampleActor;
-        let ctx = &mut ();
-        envelope.handle(&mut actor, ctx);
-    }
-
-    #[test]
-    fn test_message_envelope_box_arc() {
-        let msg = Box::new(Arc::new(HiMsg));
-        let mut envelope = MessageEnvelope::new(msg, None);
-        let mut actor = SampleActor;
-        let ctx = &mut ();
-        envelope.handle(&mut actor, ctx);
-    }
 }

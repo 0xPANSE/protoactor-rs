@@ -89,7 +89,7 @@ impl<A: Actor> Mailbox<A> {
         }
     }
 
-    pub fn get_sender(&self) -> MailboxSender<A> {
+    pub fn sender(&self) -> MailboxSender<A> {
         match self {
             Mailbox::Bounded(sender, _) => MailboxSender::from_bounded(sender.clone()),
             Mailbox::Unbounded(sender, _) => MailboxSender::from_unbounded(sender.clone()),

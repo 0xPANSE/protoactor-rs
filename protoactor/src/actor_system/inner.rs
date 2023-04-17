@@ -1,60 +1,69 @@
-use crate::actor::Actor;
-use crate::actor_process::ActorProcess;
+use crate::actor::{Actor, ActorCell, Context};
 use crate::actor_ref::ActorRef;
+use crate::actor_system::root_context::RootContext;
 use crate::prelude::Props;
 use flurry::HashMap;
 use std::any::Any;
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 
-pub type ProcessRegistry = HashMap<String, Box<dyn Any + Send + Sync>>;
+pub type ProcessRegistry = Arc<HashMap<String, Box<dyn Any + Send + Sync>>>;
 
 pub(crate) struct ActorSystemInner {
-    process_registry: HashMap<String, Box<dyn Any + Send + Sync>>,
-}
-
-impl ActorSystemInner {
-    pub fn registry(&self) -> &ProcessRegistry {
-        &self.process_registry
-    }
+    registry: ProcessRegistry,
+    next_actor_id: AtomicU64,
 }
 
 impl ActorSystemInner {
     pub fn new() -> Self {
         Self {
-            process_registry: HashMap::new(),
+            registry: Arc::new(HashMap::new()),
+            next_actor_id: AtomicU64::new(0),
         }
     }
 
-    pub fn register_actor<A>(&self, id: String, actor_ref: ActorRef<A>)
+    pub(crate) fn spawn<A>(&self, props: Props<A>, root: RootContext) -> ActorRef<A>
     where
-        A: Actor + Sync,
+        A: Actor<Context = Context<A>>,
     {
-        self.process_registry
-            .pin()
-            .insert(id, Box::new(actor_ref) as Box<dyn Any + Send + Sync>);
+        let name = self.next_actor_id.fetch_add(1, Ordering::Relaxed);
+        let actor_name = if props.prefix != "" {
+            format!("{}/${}", props.prefix, name)
+        } else {
+            format!("${}", name)
+        };
+        self.spawn_named(actor_name, props, root)
     }
 
-    pub fn get_actor_ref<A>(&self, id: &str) -> Option<ActorRef<A>>
+    pub(crate) fn spawn_named<A>(
+        &self,
+        name: String,
+        props: Props<A>,
+        root: RootContext,
+    ) -> ActorRef<A>
     where
-        A: Actor + Sync,
+        A: Actor<Context = Context<A>>,
     {
-        self.process_registry.pin().get(id).and_then(|actor_ref| {
-            actor_ref
-                .downcast_ref::<ActorRef<A>>()
-                .map(|actor_ref| actor_ref.clone())
-        })
-    }
+        let registry = self.registry.pin();
+        if registry.contains_key(&name) {
+            panic!("Actor with name {} already exists", name);
+        }
+        let actor = (props.producer)(); // create the actor instance
+        let mailbox = (props.mailbox_producer)(); // create the mailbox
+        let mailbox_sender = mailbox.sender();
+        let actor_ref = ActorRef::new(root, mailbox_sender);
+        let ctx = Context::new(actor_ref.clone());
+        let actor_cell = ActorCell::new(ctx, actor, mailbox);
+        registry.insert(name.clone(), Box::new(actor_ref.clone()));
 
-    fn create_actor<A>(&self, props: Props<A>) -> (ActorRef<A>, ActorProcess<A>)
-    where
-        A: Actor + 'static,
-    {
-        todo!("Implement ActorSystemInner::create_actor")
-    }
+        let reg = self.registry.clone();
+        tokio::spawn(async move {
+            // todo: supervision
+            actor_cell.run().await;
+            // Remove the actor from the registry when it stops running.
+            let _ = reg.pin().remove(&name);
+        });
 
-    fn spawn_actor<A>(&self, actor_process: ActorProcess<A>)
-    where
-        A: Actor + 'static,
-    {
-        todo!("Implement ActorSystemInner::spawn_actor")
+        actor_ref
     }
 }

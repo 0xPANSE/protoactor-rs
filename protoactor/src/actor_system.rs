@@ -14,19 +14,22 @@ use root_context::RootContext;
 use std::sync::{Arc, RwLock};
 
 pub struct ActorSystem {
-    inner: Arc<RwLock<ActorSystemInner>>,
-    root: RootContext,
-    config: Arc<ActorSystemConfig>,
-}
-
-impl ActorSystem {
-    pub fn root(&self) -> Arc<RootContext> {
-        todo!()
-    }
+    pub(crate) inner: Arc<ActorSystemInner>,
+    pub(crate) config: Arc<ActorSystemConfig>,
 }
 
 impl ActorSystem {
     pub fn new(config: ActorSystemConfig) -> Self {
-        todo!()
+        let inner = Arc::new(ActorSystemInner::new());
+        let config = Arc::new(config);
+        ActorSystem { inner, config }
+    }
+
+    pub fn root(&self) -> RootContext {
+        RootContext::new(self.inner.clone())
+    }
+
+    pub fn config(&self) -> Arc<ActorSystemConfig> {
+        self.config.clone()
     }
 }

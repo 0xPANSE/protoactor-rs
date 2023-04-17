@@ -1,54 +1,41 @@
 use crate::actor::{Actor, Context, Handler};
 use crate::actor_ref::ActorRef;
 use crate::actor_system::{ActorSystem, ActorSystemInner};
-use crate::mailbox::Mailbox;
 use crate::message::{Message, MessageEnvelope};
 use crate::props::Props;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 use tokio::sync::oneshot;
 
+#[derive(Clone)]
 pub struct RootContext {
-    actor_system: Arc<RwLock<ActorSystemInner>>,
+    actor_system: Arc<ActorSystemInner>,
 }
 
 impl RootContext {
-    pub(crate) fn new(actor_system: Arc<RwLock<ActorSystemInner>>) -> Self {
+    pub(crate) fn new(actor_system: Arc<ActorSystemInner>) -> Self {
         RootContext { actor_system }
     }
 
-    pub fn from_system(system: &ActorSystem) -> Self {
+    pub fn from_system(system: ActorSystem) -> Self {
         let actor_system = system.inner.clone();
-        RootContext { actor_system }
+        RootContext {
+            actor_system: system.inner.clone(),
+        }
     }
 
     pub fn spawn<A>(&self, props: Props<A>) -> ActorRef<A>
     where
-        A: Actor + Send + 'static,
+        A: Actor<Context = Context<A>> + Send + Sync + 'static,
     {
-        let mailbox_config = props.mailbox;
-        let mailbox = Mailbox::<A>::new(mailbox_config);
-        let mut ctx = Context::new(mailbox, self.actor_system.clone());
-        let actor = (props.producer)();
-        let actor_ref = ctx.actor_ref();
-        ctx.initialize(actor);
-        actor_ref
+        self.actor_system.spawn(props, self.clone())
     }
 
-    pub fn spawn_named<A>(&self, props: Props<A>, name: String) -> ActorRef<A>
+    pub fn spawn_named<A>(&self, name: &str, props: Props<A>) -> ActorRef<A>
     where
-        A: Actor + Sync + Send + 'static,
+        A: Actor<Context = Context<A>>,
     {
-        let mailbox_config = props.mailbox;
-        let mailbox = Mailbox::<A>::new(mailbox_config);
-        let mut ctx = Context::new(mailbox, self.actor_system.clone());
-        let actor = (props.producer)();
-        let actor_ref = ctx.actor_ref();
-        ctx.initialize(actor);
         self.actor_system
-            .write()
-            .unwrap()
-            .register_actor(name, actor_ref.clone());
-        actor_ref
+            .spawn_named(name.to_string(), props, self.clone())
     }
 
     pub async fn request_async<M, A>(&self, target: ActorRef<A>, msg: M) -> M::Result
@@ -64,7 +51,7 @@ impl RootContext {
         // oneshot channel is returned to the caller.
         let (sender, receiver) = oneshot::channel();
         let envelope: MessageEnvelope<A, M> = MessageEnvelope::new(msg, Some(sender));
-        target.send_user_message(envelope);
+        target.send_user_message(envelope).await;
         receiver.await.unwrap()
     }
 }

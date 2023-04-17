@@ -1,6 +1,7 @@
 use protoactor::actor::{Actor, Context, Handler};
 use protoactor::message::Message;
 
+#[derive(Debug, Default)]
 pub struct PingPongActor {
     counter: usize,
 }
@@ -9,11 +10,6 @@ impl Actor for PingPongActor {
     type Context = Context<Self>;
 }
 
-impl Default for PingPongActor {
-    fn default() -> Self {
-        PingPongActor { counter: 0 }
-    }
-}
 
 pub struct Ping;
 
