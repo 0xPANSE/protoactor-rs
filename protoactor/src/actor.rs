@@ -45,13 +45,13 @@ pub trait Actor: Sized + Send + 'static {
     ///
     /// If not implemented, the default implementation does nothing.
     /// # Example
-    /// ```
+    /// ```no_run
     /// use protoactor::prelude::*;
     ///
     /// struct MyActor;
     ///
     /// impl Actor for MyActor {
-    ///     type Context = ();
+    ///     type Context = Context<Self>;
     ///    
     ///     fn stopped(&mut self, ctx: &mut Self::Context) {
     ///         println!("MyActor stopped");

@@ -5,7 +5,7 @@ use crate::message::{Message, MessageResult};
 // type. It is implemented by actors that can process messages of that type.
 /// # Example
 /// ```
-/// use protoactor::actor::{Actor, Handler};
+/// use protoactor::actor::{Actor, Context, Handler};
 /// use protoactor::message::Message;
 ///
 /// struct MyMessage;
@@ -17,7 +17,7 @@ use crate::message::{Message, MessageResult};
 /// struct MyActor;
 ///
 /// impl Actor for MyActor {
-///     type Context = ();
+///     type Context = Context<Self>;
 /// }
 ///
 /// impl Handler<MyMessage> for MyActor {
