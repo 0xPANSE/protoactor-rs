@@ -38,7 +38,7 @@ impl RootContext {
             .spawn_named(name.to_string(), props, self.clone())
     }
 
-    pub async fn request_async<M, A>(&self, target: ActorRef<A>, msg: M) -> M::Result
+    pub async fn request_async<M, A>(&self, target: &ActorRef<A>, msg: M) -> M::Result
     where
         M: Message + Send + 'static,
         M::Result: Send + 'static,
