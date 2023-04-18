@@ -17,10 +17,8 @@ impl RootContext {
     }
 
     pub fn from_system(system: ActorSystem) -> Self {
-        let actor_system = system.inner.clone();
-        RootContext {
-            actor_system: system.inner.clone(),
-        }
+        let actor_system = system.inner;
+        RootContext { actor_system }
     }
 
     pub fn spawn<A>(&self, props: &Props<A>) -> ActorRef<A>
@@ -44,7 +42,7 @@ impl RootContext {
         M::Result: Send + 'static,
         A: Actor + Handler<M>,
     {
-        // sending meesage that requires a response need to create MessageEnvelope with a oneshot channel
+        // sending message that requires a response need to create MessageEnvelope with a oneshot channel
         // then schedule it processing by using the mailbox sender in ActorRef. The mailbox passes the
         // message to the actor's receive method. The actor can then process the message as Handler<M>
         // which will return a result. The result is then sent back to the oneshot channel and the

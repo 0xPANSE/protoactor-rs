@@ -11,7 +11,6 @@ pub mod derive {
 }
 
 pub mod actor;
-pub mod actor_process;
 pub mod actor_ref;
 pub mod actor_system;
 pub mod config;
@@ -24,7 +23,6 @@ pub mod utils;
 /// prelude module
 pub mod prelude {
     pub use crate::actor::{Actor, Context, Handler};
-    pub use crate::actor_process::ActorProcess;
     pub use crate::actor_ref::ActorRef;
     pub use crate::mailbox::Mailbox;
     pub use crate::message::Message;

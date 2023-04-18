@@ -5,20 +5,20 @@ mod actor_cell;
 mod context;
 mod handler;
 
-use crate::actor::context::ActorContext;
+pub(crate) use crate::actor::context::ActorContext;
 pub(crate) use actor_cell::ActorCell;
 pub use context::Context;
 pub use handler::Handler;
 
 /// Actor is a trait that should be implemented by all actors in the system.
 /// This trait provides a `receive` method that actors use to handle incoming messages.
-pub trait Actor: Sized + Send + 'static {
+pub trait Actor: Send + 'static {
     /// `Actor::Context` is an associated type within the `Actor` trait that represents the execution
     /// context of an actor. The context provides the actor with access to various functionalities,
     /// such as spawning child actors, stopping the actor, and sending messages to other actors.
     /// By allowing actors to define their own context types, the Actor trait becomes more flexible
     /// and can accommodate different use cases and execution models.
-    type Context: ActorContext<Self>;
+    type Context: ActorContext;
 
     /// The method called when the actor starts. This method is called after the actor is created
     /// and before the actor starts processing messages. If not implemented, the default implementation

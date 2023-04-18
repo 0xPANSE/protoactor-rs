@@ -1,5 +1,5 @@
 use crate::actor::context::ActorContext;
-use crate::actor::{Actor, Context};
+use crate::actor::Actor;
 use crate::mailbox::Mailbox;
 use tokio::sync::oneshot;
 
@@ -14,7 +14,7 @@ where
 }
 
 impl<A: Actor> ActorCell<A> {
-    pub(crate) fn new(mut ctx: A::Context, actor: A, mailbox: Mailbox<A>) -> Self {
+    pub(crate) fn new(ctx: A::Context, actor: A, mailbox: Mailbox<A>) -> Self {
         let (stop_sender, stopping) = oneshot::channel();
 
         ctx.set_stop_sender(stop_sender);

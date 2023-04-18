@@ -3,7 +3,10 @@ use crate::message::Envelope;
 use crate::message::Message;
 use tokio::sync::mpsc;
 
-pub struct MailboxSender<A: Actor> {
+pub struct MailboxSender<A>
+where
+    A: Actor,
+{
     unbounded: Option<mpsc::UnboundedSender<Box<dyn Envelope<A>>>>,
     bounded: Option<mpsc::Sender<Box<dyn Envelope<A>>>>,
     mailbox_config: MailboxConfig,

@@ -1,7 +1,6 @@
 mod ping_pong;
 
-use crate::ping_pong::{Ping, PingPongActor};
-use futures::{FutureExt, TryFutureExt};
+use crate::ping_pong::{Ping, PingActor};
 use log::info;
 use protoactor::actor_system::ActorSystem;
 use protoactor::config::ActorSystemConfig;
@@ -21,20 +20,21 @@ async fn main() {
     let actor_system = ActorSystem::new(config);
     let root_context = actor_system.root();
 
-    let props = Props::<PingPongActor>::from_producer(Default::default);
-    let ping_pong_actor1 = root_context.spawn(&props);
-    let ping_pong_actor2 = root_context.spawn_named("ping-pong/2", &props);
+    let props = Props::<PingActor>::from_producer(Default::default);
+    let actor1 = root_context.spawn(&props);
 
-    let result: usize = root_context.request_async(&ping_pong_actor1, Ping).await;
-    let result: usize = root_context.request_async(&ping_pong_actor2, Ping).await;
-    let result: usize = root_context.request_async(&ping_pong_actor1, Ping).await;
+    root_context.request_async(&actor1, Ping).await;
+    root_context.request_async(&actor1, Ping).await;
+    root_context.request_async(&actor1, Ping).await;
 
-    let ref2 = ping_pong_actor1.clone();
+    let actor2 = root_context.spawn_named("ping-pong/2", &props);
     let root_context2 = root_context.clone();
     tokio::task::spawn(async move {
+        let mut result: usize = 0;
         for _ in 0..10 {
-            let result: usize = root_context2.request_async(&ref2, Ping).await;
+            result = root_context2.request_async(&actor1, Ping).await;
         }
+        info!("From task last Pong: {}", result);
     });
 
     info!("Waiting for 1 second on main thread...");
@@ -42,6 +42,6 @@ async fn main() {
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     info!("Done sleeping on main thread.");
 
-    let result: usize = root_context.request_async(&ping_pong_actor2, Ping).await;
+    let result: usize = root_context.request_async(&actor2, Ping).await;
     info!("Pong: {}", result);
 }

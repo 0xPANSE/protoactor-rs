@@ -5,7 +5,6 @@ use crate::mailbox::MailboxSender;
 use crate::message::{Message, MessageEnvelope};
 use crate::prelude::Actor;
 use crate::proto::Pid;
-use uuid::Uuid;
 
 /// The ActorRef struct is a reference to an actor process.
 /// It holds the `Pid` that uniquely identifies the actor process and the `ActorProcess` that handles
@@ -16,9 +15,8 @@ where
     A: Actor,
 {
     pid: Pid,
-    sender: MailboxSender<A>,
+    mailbox_sender: MailboxSender<A>,
     root_context: RootContext,
-    // _marker: PhantomData<A>,
 }
 
 impl<A> PartialEq for ActorRef<A>
@@ -33,25 +31,15 @@ where
 impl<A: Actor> Eq for ActorRef<A> {}
 
 impl<A: Actor> ActorRef<A> {
-    pub(crate) fn new(pid: Pid, root_context: RootContext, mailbox: MailboxSender<A>) -> Self {
-        Self {
-            pid,
-            sender: mailbox,
-            root_context,
-            // _marker: PhantomData,
-        }
-    }
-
-    pub(crate) fn new_named(
-        name: String,
-        sender: MailboxSender<A>,
+    pub(crate) fn new(
+        pid: Pid,
         root_context: RootContext,
+        mailbox_sender: MailboxSender<A>,
     ) -> Self {
         Self {
-            pid: Pid::new(name, NO_HOST.to_string()),
-            sender,
+            pid,
+            mailbox_sender,
             root_context,
-            // _marker: PhantomData,
         }
     }
 
@@ -61,12 +49,12 @@ impl<A: Actor> ActorRef<A> {
         M::Result: Send + 'static,
         A: Actor + Handler<M>,
     {
-        if let Err(e) = self.sender.send::<M>(Box::new(envelope)).await {
+        if let Err(e) = self.mailbox_sender.send::<M>(Box::new(envelope)).await {
             log::error!("Failed to send message: {}", e);
         }
     }
 
-    pub fn request_async<M>(&self, msg: M) -> tokio::sync::oneshot::Receiver<M::Result>
+    pub fn request<M>(&self, msg: M) -> tokio::sync::oneshot::Receiver<M::Result>
     where
         M: Message + Send + 'static,
         M::Result: Send + 'static,
@@ -95,9 +83,8 @@ impl<A: Actor> Clone for ActorRef<A> {
     fn clone(&self) -> Self {
         Self {
             pid: self.pid.clone(),
-            sender: self.sender.clone(),
+            mailbox_sender: self.mailbox_sender.clone(),
             root_context: self.root_context.clone(),
-            // _marker: PhantomData,
         }
     }
 }

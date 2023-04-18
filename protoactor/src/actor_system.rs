@@ -11,7 +11,7 @@ pub(crate) mod root_context;
 use crate::config::ActorSystemConfig;
 use inner::ActorSystemInner;
 use root_context::RootContext;
-use std::sync::{Arc, RwLock};
+use std::sync::Arc;
 
 pub struct ActorSystem {
     pub(crate) inner: Arc<ActorSystemInner>,

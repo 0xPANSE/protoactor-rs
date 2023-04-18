@@ -29,7 +29,7 @@ impl ActorSystemInner {
         A: Actor<Context = Context<A>>,
     {
         let name = self.next_actor_id.fetch_add(1, Ordering::Relaxed);
-        let actor_name = if props.prefix != "" {
+        let actor_name = if !props.prefix.is_empty() {
             format!("{}/${}", props.prefix, name)
         } else {
             format!("${}", name)
@@ -50,8 +50,8 @@ impl ActorSystemInner {
         if registry_pin.contains_key(&name) {
             panic!("Actor with name {} already exists", name);
         }
-        let actor = (props.producer)(); // create the actor instance
-        let mailbox = (props.mailbox_producer)(); // create the mailbox
+        let actor = props.produce(); // create the actor instance
+        let mailbox = props.produce_mailbox(); // create the mailbox
         let mailbox_sender = mailbox.sender();
         let pid = Pid::new(name.clone(), NO_HOST.to_string());
         let actor_ref = ActorRef::new(pid, root, mailbox_sender);
