@@ -30,18 +30,16 @@ async fn main() {
     let actor2 = root_context.spawn_named("ping-pong/2", &props);
     let root_context2 = root_context.clone();
     tokio::task::spawn(async move {
-        let mut result: usize = 0;
         for _ in 0..10 {
-            result = root_context2.request_async(&actor1, Ping).await;
+            let _ = root_context2.request_async(&actor1, Ping).await;
         }
-        info!("From task last Pong: {}", result);
+        info!("From task last Pong");
     });
 
     info!("Waiting for 1 second on main thread...");
-    // wait for 1 second using tokio::time::delay_for then exit
     tokio::time::sleep(std::time::Duration::from_secs(1)).await;
     info!("Done sleeping on main thread.");
 
-    let result: usize = root_context.request_async(&actor2, Ping).await;
-    info!("Pong: {}", result);
+    let result = root_context.request_async(&actor2, Ping).await;
+    info!("Pong: {:?}", result);
 }

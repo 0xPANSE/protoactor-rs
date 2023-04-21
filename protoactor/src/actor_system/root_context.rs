@@ -1,8 +1,9 @@
 use crate::actor::{Actor, Context, Handler};
-use crate::actor_ref::ActorRef;
+use crate::actor_ref::{ActorRef, SenderRef};
 use crate::actor_system::{ActorSystem, ActorSystemInner};
 use crate::message::{Message, MessageEnvelope};
 use crate::props::Props;
+use std::fmt::Debug;
 use std::sync::Arc;
 use tokio::sync::oneshot;
 
@@ -39,16 +40,12 @@ impl RootContext {
     pub async fn request_async<M, A>(&self, target: &ActorRef<A>, msg: M) -> M::Result
     where
         M: Message + Send + 'static,
-        M::Result: Send + 'static,
+        M::Result: Debug + Send + 'static,
         A: Actor + Handler<M>,
     {
-        // sending message that requires a response need to create MessageEnvelope with a oneshot channel
-        // then schedule it processing by using the mailbox sender in ActorRef. The mailbox passes the
-        // message to the actor's receive method. The actor can then process the message as Handler<M>
-        // which will return a result. The result is then sent back to the oneshot channel and the
-        // oneshot channel is returned to the caller.
         let (sender, receiver) = oneshot::channel();
-        let envelope: MessageEnvelope<A, M> = MessageEnvelope::new(msg, Some(sender));
+        let sender_ref = SenderRef::new(Box::new(|res| sender.send(res).unwrap()));
+        let envelope: MessageEnvelope<A, M> = MessageEnvelope::new(msg, Some(sender_ref));
         target.send_user_message(envelope).await;
         receiver.await.unwrap()
     }

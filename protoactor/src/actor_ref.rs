@@ -5,6 +5,7 @@ use crate::mailbox::MailboxSender;
 use crate::message::{Message, MessageEnvelope};
 use crate::prelude::Actor;
 use crate::proto::Pid;
+use std::fmt::Debug;
 
 /// The ActorRef struct is a reference to an actor process.
 /// It holds the `Pid` that uniquely identifies the actor process and the `ActorProcess` that handles
@@ -15,7 +16,7 @@ where
     A: Actor,
 {
     pid: Pid,
-    mailbox_sender: MailboxSender<A>,
+    pub(crate) mailbox_sender: MailboxSender<A>,
     root_context: RootContext,
 }
 
@@ -57,11 +58,14 @@ impl<A: Actor> ActorRef<A> {
     pub fn request<M>(&self, msg: M) -> tokio::sync::oneshot::Receiver<M::Result>
     where
         M: Message + Send + 'static,
-        M::Result: Send + 'static,
+        M::Result: Debug + Send + 'static,
         A: Handler<M>,
     {
         let (tx, rx) = tokio::sync::oneshot::channel();
-        let message_envelope = MessageEnvelope::new(msg, Some(tx));
+        let sender_ref = SenderRef::new(Box::new(move |res| {
+            tx.send(res).unwrap();
+        }));
+        let message_envelope = MessageEnvelope::new(msg, Some(sender_ref));
         self.send_user_message(message_envelope);
         rx
     }
@@ -86,5 +90,27 @@ impl<A: Actor> Clone for ActorRef<A> {
             mailbox_sender: self.mailbox_sender.clone(),
             root_context: self.root_context.clone(),
         }
+    }
+}
+
+pub struct SenderRef<M>
+where
+    M: Message + Send + 'static,
+    M::Result: Send + 'static,
+{
+    respond_fn: Box<dyn FnOnce(M::Result) + Send + 'static>,
+}
+
+impl<M> SenderRef<M>
+where
+    M: Message + Send + 'static,
+    M::Result: Send + 'static,
+{
+    pub fn new(respond_fn: Box<dyn FnOnce(M::Result) + Send + 'static>) -> Self {
+        Self { respond_fn }
+    }
+
+    pub fn respond(self, result: M::Result) {
+        (self.respond_fn)(result)
     }
 }

@@ -1,4 +1,8 @@
 use crate::actor::{Actor, ActorRef};
+use crate::actor_ref::SenderRef;
+use crate::message::{Message, MessageEnvelope};
+use crate::prelude::Handler;
+use futures::SinkExt;
 use std::any::Any;
 use std::cell::RefCell;
 use tokio::sync::oneshot;
@@ -46,13 +50,41 @@ where
         self.sender = Some(sender);
     }
 
-    pub fn sender<B>(&self) -> Option<&ActorRef<B>>
+    pub fn sender<B, R>(&self) -> Option<&ActorRef<B>>
     where
-        B: Actor,
+        B: Actor + Handler<R>,
+        R: Message + Send + 'static,
+        R::Result: Message + Send + 'static,
     {
         self.sender
             .as_ref()
             .and_then(|sender| sender.downcast_ref::<ActorRef<B>>())
+    }
+
+    /// Send a message to the actor and wait for the response.
+    /// This method is only available if the actor implements the `Handler` trait for the message type.
+    /// If the actor does not implement the `Handler` trait for the message type, this method will panic.
+    /// If the actor is not running, this method will panic.
+    pub fn response<S, M>(&self, response: M)
+    where
+        S: Actor + Handler<M> + Send + 'static,
+        M: Message + Send + 'static,
+        M::Result: Send + 'static,
+    {
+        if let Some(sender) = self.sender::<S, M>().take() {
+            // let myself = self.myself.mailbox_sender.clone();
+            // let sender_ref = SenderRef::new(Box::new(|r| {
+            //     tokio::spawn(async move {
+            //         myself.send(Box::new(r)).await;
+            //     });
+            // }));
+            let envelope = MessageEnvelope::new(response, None);
+            tokio::spawn(async move {
+                sender.send_user_message(envelope).await;
+            });
+        } else {
+            panic!("No sender found");
+        }
     }
 }
 

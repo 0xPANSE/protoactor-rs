@@ -1,4 +1,5 @@
 use crate::actor::{Actor, Handler};
+use crate::actor_ref::SenderRef;
 use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
 use std::sync::Arc;
@@ -75,7 +76,7 @@ where
     M: Message + Send + 'static,
     M::Result: Send + 'static,
 {
-    sender: Option<oneshot::Sender<M::Result>>,
+    sender: Option<SenderRef<M>>,
     message: Option<M>,
     _marker: PhantomData<A>,
 }
@@ -87,7 +88,7 @@ where
     M::Result: Send + 'static,
 {
     /// Constructs a new `MessageEnvelope` with the given message.
-    pub fn new(message: M, sender: Option<oneshot::Sender<M::Result>>) -> Self {
+    pub fn new(message: M, sender: Option<SenderRef<M>>) -> Self {
         MessageEnvelope {
             sender,
             message: Some(message),
@@ -110,7 +111,7 @@ where
         if let Some(msg) = self.message.take() {
             let result = actor.handle(msg, ctx);
             if let Some(sender) = self.sender.take() {
-                let _ = sender.send(result);
+                sender.respond(result);
             }
         }
     }

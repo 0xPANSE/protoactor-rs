@@ -13,11 +13,11 @@ impl Actor for PingActor {
 }
 
 #[derive(Message)]
-#[rtype(usize)]
+#[rtype(Pong)]
 pub struct Ping;
 
 impl Handler<Ping> for PingActor {
-    fn handle(&mut self, msg: Ping, ctx: &mut Context<Self>) -> usize {
+    fn handle(&mut self, msg: Ping, ctx: &mut Context<Self>) -> Pong {
         let self_ = ctx.myself();
         let target = format!("PingActor[{}]", self_.id());
         info!(
@@ -25,23 +25,35 @@ impl Handler<Ping> for PingActor {
             "PingPongActor received a message: {:?}", &msg
         );
         self.counter += 1;
-        self.counter
+        self.counter;
+        Pong(self.counter, "pong".to_string())
     }
 }
 
 #[derive(Message)]
-#[rtype(usize)]
+#[rtype(Ping)]
 pub struct Pong(usize, #[obfuscated] String);
 
 pub struct PongActor {
     counter: usize,
-    actor_ref: Option<ActorRef<PingActor>>,
+    ping_actor: Option<ActorRef<PingActor>>,
 }
 
-// impl Actor for PongActor {
-//     type Context = Context<Self>;
-//
-//     fn started(&mut self, ctx: &mut Self::Context) {
-//         self.actor_ref = Some(ctx.spawn(PingActor::default(), "PingActor"));
-//     }
-// }
+impl Actor for PongActor {
+    type Context = Context<Self>;
+}
+
+impl Handler<Pong> for PongActor {
+    fn handle(&mut self, msg: Pong, ctx: &mut Context<Self>) -> Ping {
+        let self_ = ctx.myself();
+        let target = format!("PongActor[{}]", self_.id());
+        info!(
+            target: &target,
+            "PingPongActor received a message: {:?}", &msg
+        );
+        self.counter += 1;
+        ctx.response::<PingActor, Ping>(Ping);
+        self.counter;
+        Ping
+    }
+}
