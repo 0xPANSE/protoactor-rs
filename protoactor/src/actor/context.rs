@@ -1,8 +1,7 @@
 use crate::actor::{Actor, ActorRef};
-use crate::actor_ref::SenderRef;
 use crate::message::{Message, MessageEnvelope};
 use crate::prelude::Handler;
-use futures::SinkExt;
+use log::warn;
 use std::any::Any;
 use std::cell::RefCell;
 use tokio::sync::oneshot;
@@ -52,9 +51,7 @@ where
 
     pub fn sender<B, R>(&self) -> Option<&ActorRef<B>>
     where
-        B: Actor + Handler<R>,
-        R: Message + Send + 'static,
-        R::Result: Message + Send + 'static,
+        B: Actor + Send + 'static,
     {
         self.sender
             .as_ref()
@@ -69,9 +66,8 @@ where
     where
         S: Actor + Handler<M> + Send + 'static,
         M: Message + Send + 'static,
-        M::Result: Send + 'static,
     {
-        if let Some(sender) = self.sender::<S, M>().take() {
+        if let Some(sender) = self.sender::<S, M>() {
             // let myself = self.myself.mailbox_sender.clone();
             // let sender_ref = SenderRef::new(Box::new(|r| {
             //     tokio::spawn(async move {
@@ -79,11 +75,12 @@ where
             //     });
             // }));
             let envelope = MessageEnvelope::new(response, None);
+            let s = sender.mailbox_sender.clone();
             tokio::spawn(async move {
-                sender.send_user_message(envelope).await;
+                let _ = s.send(Box::new(envelope)).await;
             });
         } else {
-            panic!("No sender found");
+            warn!("Message {:?} lost", response);
         }
     }
 }

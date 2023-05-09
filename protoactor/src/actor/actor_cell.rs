@@ -28,6 +28,7 @@ impl<A: Actor> ActorCell<A> {
     }
 
     pub(crate) async fn run(mut self) {
+        self.actor.started(&mut self.ctx);
         loop {
             tokio::select! {
                 envelope = self.mailbox.recv() => {
@@ -39,9 +40,11 @@ impl<A: Actor> ActorCell<A> {
                     }
                 }
                 _ = &mut self.stopping => {
+                    log::debug!("Stopping actor");
                     break;
                 }
             }
         }
+        self.actor.stopped(&mut self.ctx);
     }
 }

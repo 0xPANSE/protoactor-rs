@@ -36,7 +36,6 @@ impl<A: Actor> MailboxSender<A> {
     ) -> Result<(), Box<dyn std::error::Error>>
     where
         M: Message + Send + 'static,
-        M::Result: Send + 'static,
         A: Handler<M>,
     {
         match self.mailbox_config {

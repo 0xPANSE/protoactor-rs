@@ -33,7 +33,7 @@ use serde::{Deserialize, Serialize};
 use std::any::Any;
 use std::sync::Arc;
 
-#[allow(clippy::derive_partial_eq_without_eq)]
+#[derive(Debug, ::prost::Message)]
 pub struct Pid {
     #[prost(string, tag = "1")]
     pub address: ::prost::alloc::string::String,

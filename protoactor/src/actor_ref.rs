@@ -1,11 +1,15 @@
-use crate::actor::Handler;
+use crate::actor::{Context, Handler};
 use crate::actor_system::root_context::RootContext;
 use crate::config::NO_HOST;
 use crate::mailbox::MailboxSender;
 use crate::message::{Message, MessageEnvelope};
 use crate::prelude::Actor;
 use crate::proto::Pid;
-use std::fmt::Debug;
+use futures::future::Then;
+use futures::{FutureExt, TryFutureExt};
+use std::any::Any;
+use std::future::Future;
+use tokio::sync::oneshot::error::RecvError;
 
 /// The ActorRef struct is a reference to an actor process.
 /// It holds the `Pid` that uniquely identifies the actor process and the `ActorProcess` that handles
@@ -47,7 +51,6 @@ impl<A: Actor> ActorRef<A> {
     pub(crate) async fn send_user_message<M>(&self, envelope: MessageEnvelope<A, M>)
     where
         M: Message + Send + 'static,
-        M::Result: Send + 'static,
         A: Actor + Handler<M>,
     {
         if let Err(e) = self.mailbox_sender.send::<M>(Box::new(envelope)).await {
@@ -55,10 +58,10 @@ impl<A: Actor> ActorRef<A> {
         }
     }
 
-    pub fn request<M>(&self, msg: M) -> tokio::sync::oneshot::Receiver<M::Result>
+    pub fn request<M, R>(&self, msg: M) -> impl Future<Output = Result<Box<R>, RecvError>>
     where
         M: Message + Send + 'static,
-        M::Result: Debug + Send + 'static,
+        R: Message + Send + 'static,
         A: Handler<M>,
     {
         let (tx, rx) = tokio::sync::oneshot::channel();
@@ -67,7 +70,20 @@ impl<A: Actor> ActorRef<A> {
         }));
         let message_envelope = MessageEnvelope::new(msg, Some(sender_ref));
         self.send_user_message(message_envelope);
-        rx
+        rx.then(|res| async move { res.map(|res| res.downcast().unwrap()) })
+    }
+
+    pub fn send<M>(&self, msg: M)
+    where
+        M: Message + Send + 'static,
+        A: Handler<M>,
+    {
+        // send message to actor using root context
+        let me = self.clone();
+        self.root_context.schedule(async move {
+            let message_envelope = MessageEnvelope::new(msg, None);
+            me.send_user_message(message_envelope).await;
+        });
     }
 
     pub fn id(&self) -> String {
@@ -93,24 +109,21 @@ impl<A: Actor> Clone for ActorRef<A> {
     }
 }
 
-pub struct SenderRef<M>
-where
-    M: Message + Send + 'static,
-    M::Result: Send + 'static,
-{
-    respond_fn: Box<dyn FnOnce(M::Result) + Send + 'static>,
+pub struct SenderRef {
+    respond_fn: Box<dyn FnOnce(Box<dyn Any + Send + 'static>) + Send + 'static>,
 }
 
-impl<M> SenderRef<M>
-where
-    M: Message + Send + 'static,
-    M::Result: Send + 'static,
-{
-    pub fn new(respond_fn: Box<dyn FnOnce(M::Result) + Send + 'static>) -> Self {
+impl SenderRef {
+    pub fn new(
+        respond_fn: Box<impl FnOnce(Box<dyn Any + Send + 'static>) + Send + 'static>,
+    ) -> Self {
         Self { respond_fn }
     }
 
-    pub fn respond(self, result: M::Result) {
-        (self.respond_fn)(result)
+    pub fn respond<M>(self, result: M)
+    where
+        M: Message + Send + 'static,
+    {
+        (self.respond_fn)(Box::new(result))
     }
 }

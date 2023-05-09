@@ -58,7 +58,9 @@ pub trait Actor: Send + 'static {
     ///     }
     /// }
     /// ```
-    fn stopped(&mut self, _ctx: &mut Self::Context) {}
+    fn stopped(&mut self, _ctx: &mut Self::Context) {
+        log::debug!("Actor stopped");
+    }
 }
 
 pub struct MessageResult<M: Message>(pub M);
@@ -84,20 +86,18 @@ mod tests {
     }
 
     // A simple message that represents saying "Hi".
+    #[derive(Debug)]
     pub struct HiMsg;
 
     // Implement the Message trait for HiMsg with a unit result type.
-    impl Message for HiMsg {
-        type Result = ();
-    }
+    impl Message for HiMsg {}
 
     // A simple message that represents saying "Bye".
+    #[derive(Debug)]
     pub struct ByeMsg;
 
     // Implement the Message trait for ByeMsg with a unit result type.
-    impl Message for ByeMsg {
-        type Result = ();
-    }
+    impl Message for ByeMsg {}
 
     // Implement the Handler trait for HiMsg, so SampleActor can process HiMsg.
     impl Handler<HiMsg> for SampleActor {

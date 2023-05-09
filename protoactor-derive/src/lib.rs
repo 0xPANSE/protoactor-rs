@@ -4,8 +4,7 @@ use proc_macro::TokenStream;
 use proc_macro2::Ident;
 use quote::{format_ident, quote};
 use syn::{
-    parse_macro_input, Attribute, Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed,
-    FieldsUnnamed,
+    parse_macro_input, Data, DataEnum, DataStruct, DeriveInput, Fields, FieldsNamed, FieldsUnnamed,
 };
 
 /// Derive macro for the Message trait. It will implement the Message trait for the given type and
@@ -161,7 +160,7 @@ pub fn message_derive(input: TokenStream) -> TokenStream {
 
 fn impl_message(ast: &DeriveInput) -> proc_macro2::TokenStream {
     let name = &ast.ident;
-    let result_type = get_rtype(&ast.attrs);
+    // let result_type = get_rtype(&ast.attrs);
     let debug_impl = match &ast.data {
         Data::Struct(ref data) => impl_debug_for_struct(name, data),
         Data::Enum(ref data) => impl_debug_for_enum(name, data),
@@ -174,20 +173,20 @@ fn impl_message(ast: &DeriveInput) -> proc_macro2::TokenStream {
     quote! {
         #[automatically_derived]
         impl protoactor::message::Message for #name {
-            type Result = #result_type;
+            // type Result = #result_type;
         }
 
         #debug_impl
     }
 }
 
-fn get_rtype(attrs: &[Attribute]) -> syn::Type {
-    attrs
-        .iter()
-        .find(|attr| attr.meta.path().is_ident("rtype"))
-        .and_then(|rtype_attr| syn::parse2(rtype_attr.parse_args().unwrap()).ok())
-        .unwrap_or_else(|| syn::parse_str("()").unwrap())
-}
+// fn get_rtype(attrs: &[Attribute]) -> syn::Type {
+//     attrs
+//         .iter()
+//         .find(|attr| attr.meta.path().is_ident("rtype"))
+//         .and_then(|rtype_attr| syn::parse2(rtype_attr.parse_args().unwrap()).ok())
+//         .unwrap_or_else(|| syn::parse_str("()").unwrap())
+// }
 
 fn impl_debug_for_struct(name: &Ident, data: &DataStruct) -> proc_macro2::TokenStream {
     let format_debug = match data.fields {

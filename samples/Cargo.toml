@@ -11,3 +11,7 @@ tokio = { version = "1.0", features = ["full"] }
 futures = "0.3.17"
 log = "0.4.14"
 env_logger = "0.10.0"
+
+[profile.release]
+# Tell `rustc` to optimize for best performance instead of smallest code size.
+opt-level = 3

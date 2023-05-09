@@ -18,7 +18,7 @@ pub struct Props<A: Actor> {
 impl<A: Actor> Props<A> {
     /// Creates a new Props instance from a producer closure.
     /// The producer closure is a function that returns a new instance of the actor.
-    pub fn from_producer(producer: impl Fn() -> A + Send + Sync + 'static) -> Self {
+    pub fn from_producer(producer: impl Fn() -> A + Send + 'static) -> Self {
         Props {
             producer: Box::new(producer),
             // default mailbox producer is unbounded

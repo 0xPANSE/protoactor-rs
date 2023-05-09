@@ -8,11 +8,10 @@ use crate::message::Message;
 /// use protoactor::actor::{Actor, Context, Handler};
 /// use protoactor::message::Message;
 ///
+/// #[derive(Debug)]
 /// struct MyMessage;
 ///
-/// impl Message for MyMessage {
-///     type Result = ();
-/// }
+/// impl Message for MyMessage { }
 ///
 /// struct MyActor;
 ///
@@ -21,7 +20,7 @@ use crate::message::Message;
 /// }
 ///
 /// impl Handler<MyMessage> for MyActor {
-///     fn handle(&mut self, msg: MyMessage, ctx: &mut Self::Context) -> () {
+///     fn handle(&mut self, msg: MyMessage, ctx: &mut Self::Context) {
 ///         println!("MyActor received a message");
 ///     }
 /// }
@@ -31,10 +30,9 @@ pub trait Handler<M>
 where
     Self: Actor,
     M: Message,
-    M::Result: Send + 'static,
 {
     /// The method called to handle a specific message type.
-    fn handle(&mut self, msg: M, ctx: &mut Self::Context) -> M::Result;
+    fn handle(&mut self, msg: M, ctx: &mut Self::Context);
 
     // todo: #[async_trait], and check the cost of it
 }

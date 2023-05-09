@@ -21,10 +21,10 @@ mod actor {
 
     impl Hash for Pid {
         fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-            if self.id != "" {
+            if !self.id.is_empty() {
                 self.id.hash(state);
             }
-            if self.address != "" {
+            if !self.address.is_empty() {
                 self.address.hash(state);
             }
             if self.request_id != 0 {
