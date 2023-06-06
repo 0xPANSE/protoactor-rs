@@ -3,7 +3,6 @@ use crate::actor_ref::SenderRef;
 use std::fmt::{Debug, Formatter};
 use std::marker::PhantomData;
 use std::sync::Arc;
-use tokio::sync::oneshot;
 
 /// Marker trait for messages. The `Result` associated type is used to specify the type of the
 /// result that will be returned when the message is sent to an actor.
@@ -87,9 +86,10 @@ where
 {
     /// The `handle` method implementation for `MessageEnvelope`.
     /// It calls the appropriate handler on the actor for the wrapped message.
+    #[inline]
     fn handle(&mut self, actor: &mut A, ctx: &mut A::Context) {
         if let Some(msg) = self.message.take() {
-            let _ = actor.handle(msg, ctx);
+            actor.handle(msg, ctx);
         }
     }
 

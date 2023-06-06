@@ -28,7 +28,6 @@ serde = { version = "1.0", features = ["derive"] }
 tokio = { version = "1.0", features = ["full", "test-util"] }
 uuid = { vresion = "0.8", features = ["v4", "v5"] }
 
-
 [build-dependencies]
 prost-build = "0.11.8"
 

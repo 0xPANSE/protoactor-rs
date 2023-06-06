@@ -9,6 +9,7 @@ use futures::future::Then;
 use futures::{FutureExt, TryFutureExt};
 use std::any::Any;
 use std::future::Future;
+use std::sync::Arc;
 use tokio::sync::oneshot::error::RecvError;
 
 /// The ActorRef struct is a reference to an actor process.
@@ -20,7 +21,7 @@ where
     A: Actor,
 {
     pid: Pid,
-    pub(crate) mailbox_sender: MailboxSender<A>,
+    mailbox_sender: Arc<MailboxSender<A>>,
     root_context: RootContext,
 }
 
@@ -39,7 +40,7 @@ impl<A: Actor> ActorRef<A> {
     pub(crate) fn new(
         pid: Pid,
         root_context: RootContext,
-        mailbox_sender: MailboxSender<A>,
+        mailbox_sender: Arc<MailboxSender<A>>,
     ) -> Self {
         Self {
             pid,
@@ -48,12 +49,12 @@ impl<A: Actor> ActorRef<A> {
         }
     }
 
-    pub(crate) async fn send_user_message<M>(&self, envelope: MessageEnvelope<A, M>)
+    pub(crate) fn send_user_message<M>(&self, envelope: MessageEnvelope<A, M>)
     where
         M: Message + Send + 'static,
         A: Actor + Handler<M>,
     {
-        if let Err(e) = self.mailbox_sender.send::<M>(Box::new(envelope)).await {
+        if let Err(e) = self.mailbox_sender.send::<M>(Box::new(envelope)) {
             log::error!("Failed to send message: {}", e);
         }
     }
@@ -80,10 +81,8 @@ impl<A: Actor> ActorRef<A> {
     {
         // send message to actor using root context
         let me = self.clone();
-        self.root_context.schedule(async move {
-            let message_envelope = MessageEnvelope::new(msg, None);
-            me.send_user_message(message_envelope).await;
-        });
+        let message_envelope = MessageEnvelope::new(msg, None);
+        me.send_user_message(message_envelope);
     }
 
     pub fn id(&self) -> String {

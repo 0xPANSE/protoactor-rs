@@ -47,7 +47,7 @@ impl RootContext {
             .spawn_named(name.to_string(), props, self.clone())
     }
 
-    pub async fn send<M, A>(&self, target: &ActorRef<A>, msg: M)
+    pub fn send<M, A>(&self, target: &ActorRef<A>, msg: M)
     where
         M: Message + Send + 'static,
         A: Actor + Handler<M>,
@@ -55,6 +55,6 @@ impl RootContext {
         let (sender, receiver) = oneshot::channel();
         let sender_ref = SenderRef::new(Box::new(|res| sender.send(res).unwrap()));
         let envelope: MessageEnvelope<A, M> = MessageEnvelope::new(msg, Some(sender_ref));
-        target.send_user_message(envelope).await
+        target.send_user_message(envelope)
     }
 }

@@ -27,10 +27,12 @@ impl<A: Actor> ActorCell<A> {
         }
     }
 
+    #[inline]
     pub(crate) async fn run(mut self) {
         self.actor.started(&mut self.ctx);
         loop {
             tokio::select! {
+                biased;
                 envelope = self.mailbox.recv() => {
                     match envelope {
                         Some(mut envelope) => {

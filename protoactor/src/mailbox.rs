@@ -1,6 +1,7 @@
 use crate::actor::{Actor, Handler};
 use crate::message::Envelope;
 use crate::message::Message;
+use std::sync::Arc;
 use tokio::sync::mpsc;
 
 pub struct MailboxSender<A>
@@ -30,41 +31,56 @@ impl<A: Actor> MailboxSender<A> {
         }
     }
 
-    pub async fn send<M>(
-        &self,
-        envelope: Box<dyn Envelope<A>>,
-    ) -> Result<(), Box<dyn std::error::Error>>
+    // pub async fn send<M>(
+    //     &self,
+    //     envelope: Box<dyn Envelope<A>>,
+    // ) -> Result<(), Box<dyn std::error::Error>>
+    // where
+    //     M: Message + Send + 'static,
+    //     A: Handler<M>,
+    // {
+    //     match self.mailbox_config {
+    //         MailboxConfig::Bounded(_) => self
+    //             .bounded
+    //             .as_ref()
+    //             .unwrap()
+    //             .send(envelope)
+    //             .await
+    //             .map_err(|e| e.into()),
+    //         MailboxConfig::Unbounded => self
+    //             .unbounded
+    //             .as_ref()
+    //             .unwrap()
+    //             .send(envelope)
+    //             .map_err(|e| e.into()),
+    //     }
+    // }
+    pub fn send<M>(&self, envelope: Box<dyn Envelope<A>>) -> Result<(), Box<dyn std::error::Error>>
     where
         M: Message + Send + 'static,
         A: Handler<M>,
     {
         match self.mailbox_config {
-            MailboxConfig::Bounded(_) => self
-                .bounded
-                .as_ref()
-                .unwrap()
-                .send(envelope)
-                .await
-                .map_err(|e| e.into()),
             MailboxConfig::Unbounded => self
                 .unbounded
                 .as_ref()
                 .unwrap()
                 .send(envelope)
                 .map_err(|e| e.into()),
+            _ => Err("Mailbox is bounded".into()),
         }
     }
 }
 
-impl<A: Actor> Clone for MailboxSender<A> {
-    fn clone(&self) -> Self {
-        Self {
-            unbounded: self.unbounded.clone(),
-            bounded: self.bounded.clone(),
-            mailbox_config: self.mailbox_config.clone(),
-        }
-    }
-}
+// impl<A: Actor> Clone for MailboxSender<A> {
+//     fn clone(&self) -> Self {
+//         Self {
+//             unbounded: self.unbounded.clone(),
+//             bounded: self.bounded.clone(),
+//             mailbox_config: self.mailbox_config.clone(),
+//         }
+//     }
+// }
 
 pub enum Mailbox<A: Actor> {
     Bounded(
@@ -98,7 +114,7 @@ impl<A: Actor> Mailbox<A> {
         }
     }
 
-    pub async fn recv(&mut self) -> Option<Box<dyn Envelope<A>>> {
+    pub(crate) async fn recv(&mut self) -> Option<Box<dyn Envelope<A>>> {
         match self {
             Mailbox::Bounded(_, receiver) => receiver.recv().await,
             Mailbox::Unbounded(_, receiver) => receiver.recv().await,

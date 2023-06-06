@@ -41,6 +41,7 @@ where
         }
     }
 
+    #[inline]
     pub fn myself(&self) -> &ActorRef<A> {
         &self.myself
     }
@@ -49,6 +50,7 @@ where
         self.sender = Some(sender);
     }
 
+    #[inline]
     pub fn sender<B, R>(&self) -> Option<&ActorRef<B>>
     where
         B: Actor + Send + 'static,
@@ -62,23 +64,14 @@ where
     /// This method is only available if the actor implements the `Handler` trait for the message type.
     /// If the actor does not implement the `Handler` trait for the message type, this method will panic.
     /// If the actor is not running, this method will panic.
+    #[inline]
     pub fn response<S, M>(&self, response: M)
     where
         S: Actor + Handler<M> + Send + 'static,
         M: Message + Send + 'static,
     {
         if let Some(sender) = self.sender::<S, M>() {
-            // let myself = self.myself.mailbox_sender.clone();
-            // let sender_ref = SenderRef::new(Box::new(|r| {
-            //     tokio::spawn(async move {
-            //         myself.send(Box::new(r)).await;
-            //     });
-            // }));
-            let envelope = MessageEnvelope::new(response, None);
-            let s = sender.mailbox_sender.clone();
-            tokio::spawn(async move {
-                let _ = s.send(Box::new(envelope)).await;
-            });
+            sender.send(response);
         } else {
             warn!("Message {:?} lost", response);
         }

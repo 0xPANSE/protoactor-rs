@@ -7,3 +7,16 @@ members=[
     "protoactor-remote",
     "samples",
 ]
+
+[patch.crates-io]
+protoactor = { path = "protoactor" }
+protoactor-cluster = { path = "protoactor-cluster" }
+protoactor-derive = { path = "protoactor-derive" }
+protoactor-persistence = { path = "protoactor-persistence" }
+protoactor-remote = { path = "protoactor-remote" }
+
+
+[profile.release]
+lto = true
+opt-level = 3
+codegen-units = 1

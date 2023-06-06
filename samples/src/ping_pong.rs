@@ -36,7 +36,7 @@ pub struct Pong(usize, #[obfuscated] String);
 
 impl Handler<Ping> for PingActor {
     fn handle(&mut self, msg: Ping, ctx: &mut Context<Self>) {
-        let target = format!("PingActor[{}]", ctx.myself().id());
+        // let target = format!("PingActor[{}]", ctx.myself().id());
         // info!(target: &target, "received a message: {:?}", &msg);
         self.counter += 1;
         msg.0.send(Pong(self.counter, "Pong".to_string()));
@@ -52,15 +52,15 @@ impl Actor for PongActor {
     type Context = Context<Self>;
 
     fn started(&mut self, ctx: &mut Self::Context) {
-        let target = format!("PongActor[{}]", ctx.myself().id());
-        info!(target: &target, "started");
+        // let target = format!("PongActor[{}]", ctx.myself().id());
+        // info!(target: &target, "started");
         self.ping_actor.send(Ping(ctx.myself().clone()));
     }
 }
 
 impl Handler<Pong> for PongActor {
     fn handle(&mut self, msg: Pong, ctx: &mut Context<Self>) {
-        let target = format!("PongActor[{}]", ctx.myself().id());
+        // let target = format!("PongActor[{}]", ctx.myself().id());
         self.counter += 1;
         // info!(
         //     target: &target,

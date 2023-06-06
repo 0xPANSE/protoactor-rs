@@ -54,7 +54,7 @@ impl ActorSystemInner {
         let mailbox = props.produce_mailbox(); // create the mailbox
         let mailbox_sender = mailbox.sender();
         let pid = Pid::new(name.clone(), NO_HOST.to_string());
-        let actor_ref = ActorRef::new(pid, root, mailbox_sender);
+        let actor_ref = ActorRef::new(pid, root, Arc::new(mailbox_sender));
         let ctx = Context::new(actor_ref.clone());
         let actor_cell = ActorCell::new(ctx, actor, mailbox);
         registry_pin.insert(name.clone(), Box::new(actor_ref.clone()));
