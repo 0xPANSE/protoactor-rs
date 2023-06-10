@@ -1,0 +1,25 @@
+[package]
+name = "protoactor-derive"
+version = "0.1.0"
+edition = "2021"
+authors = ["Milan Jarić"]
+description = "ProtoActor implementation in Rust"
+repository = "https://github.com/0xPANSE/protoactor-rs"
+license-file = "../LICENSE"
+readme = "../README.md"
+keywords = ["protoactor", "actor", "actor-system", "derive", "proc-macro"]
+categories = ["concurrency", "asynchronous", "network-programming"]
+documentation = "https://docs.rs/protoactor"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[lib]
+proc-macro = true
+
+[dependencies]
+syn = { version = "2.0.15", features = ["full"] }
+quote = "1.0"
+proc-macro2 = "1.0"
+
+[dev-dependencies]
+protoactor = { path = "../protoactor", version = "0.1.0", default-features = false }

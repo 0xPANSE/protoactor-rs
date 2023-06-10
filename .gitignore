@@ -1,2 +1,5 @@
 /target
 .idea/
+
+# Auto-generated files
+/protoactor/src/proto/actor.rs
