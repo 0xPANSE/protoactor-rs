@@ -1,3 +1,10 @@
+use std::any::Any;
+use std::future::Future;
+use std::sync::Arc;
+
+use futures::{FutureExt, TryFutureExt};
+use tokio::sync::oneshot::error::RecvError;
+
 use crate::actor::{Context, Handler};
 use crate::actor_system::root_context::RootContext;
 use crate::config::NO_HOST;
@@ -5,12 +12,6 @@ use crate::mailbox::MailboxSender;
 use crate::message::{Message, MessageEnvelope};
 use crate::prelude::Actor;
 use crate::proto::Pid;
-use futures::future::Then;
-use futures::{FutureExt, TryFutureExt};
-use std::any::Any;
-use std::future::Future;
-use std::sync::Arc;
-use tokio::sync::oneshot::error::RecvError;
 
 /// The ActorRef struct is a reference to an actor process.
 /// It holds the `Pid` that uniquely identifies the actor process and the `ActorProcess` that handles
@@ -71,7 +72,7 @@ impl<A: Actor> ActorRef<A> {
         }));
         let message_envelope = MessageEnvelope::new(msg, Some(sender_ref));
         self.send_user_message(message_envelope);
-        rx.then(|res| async move { res.map(|res| res.downcast().unwrap()) })
+        rx.then(|res| async { res.map(|res| res.downcast().unwrap()) })
     }
 
     pub fn send<M>(&self, msg: M)
@@ -80,21 +81,20 @@ impl<A: Actor> ActorRef<A> {
         A: Handler<M>,
     {
         // send message to actor using root context
-        let me = self.clone();
         let message_envelope = MessageEnvelope::new(msg, None);
-        me.send_user_message(message_envelope);
+        self.send_user_message(message_envelope);
     }
 
-    pub fn id(&self) -> String {
-        self.pid.id.clone()
+    pub fn id(&self) -> &str {
+        self.pid.id.as_ref()
     }
 
-    pub fn address(&self) -> String {
-        self.pid.address.clone()
+    pub fn address(&self) -> &str {
+        self.pid.address.as_ref()
     }
 
-    pub fn pid(&self) -> Pid {
-        self.pid.clone()
+    pub fn pid(&self) -> &Pid {
+        &self.pid
     }
 }
 
