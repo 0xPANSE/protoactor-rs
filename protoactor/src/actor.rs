@@ -68,16 +68,29 @@ pub struct MessageResult<M: Message>(pub M);
 #[cfg(test)]
 mod tests {
     use super::*;
-    use futures::future::Select;
+    use tokio::sync::oneshot::Sender;
+
+    pub struct TestContext;
+
+    impl ActorContext for TestContext {
+        fn set_stop_sender(&self, _stop_sender: Sender<()>) {
+            unimplemented!("set_stop_sender")
+        }
+
+        fn stop(&self) {
+            unimplemented!("set_stop_sender")
+        }
+    }
 
     // A simple example of an actor, which has a name as its state.
     pub struct SampleActor {
         pub name: String,
+        pub result: String,
     }
 
     // Implement the Actor trait for SampleActor.
     impl Actor for SampleActor {
-        type Context = Context<Self>;
+        type Context = TestContext;
 
         // Print a message when the SampleActor starts.
         fn started(&mut self, _ctx: &mut Self::Context) {
@@ -86,47 +99,84 @@ mod tests {
     }
 
     // A simple message that represents saying "Hi".
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct HiMsg;
 
     // Implement the Message trait for HiMsg with a unit result type.
     impl Message for HiMsg {}
 
     // A simple message that represents saying "Bye".
-    #[derive(Debug)]
+    #[derive(Debug, PartialEq)]
     pub struct ByeMsg;
 
     // Implement the Message trait for ByeMsg with a unit result type.
     impl Message for ByeMsg {}
 
+    #[derive(Debug, PartialEq)]
+    pub enum MsgVariants<'a> {
+        SetName(&'a str),
+        Hi,
+        Bye,
+    }
+
+    impl<'a> Message for MsgVariants<'a> {}
+
     // Implement the Handler trait for HiMsg, so SampleActor can process HiMsg.
     impl Handler<HiMsg> for SampleActor {
         fn handle(&mut self, _msg: HiMsg, _ctx: &mut Self::Context) {
-            println!("Hi from {}", self.name);
+            self.result = format!("Hi, {}", self.name);
         }
     }
 
     // Implement the Handler trait for ByeMsg, so SampleActor can process ByeMsg.
     impl Handler<ByeMsg> for SampleActor {
         fn handle(&mut self, _msg: ByeMsg, _ctx: &mut Self::Context) {
-            println!("Bye from {}", self.name);
+            self.result = format!("Bye, {}", self.name);
         }
     }
 
-    // #[test]
-    // fn test_sample_actor() {
-    //     let mut sample_actor = SampleActor {
-    //         name: "Alice".to_string(),
-    //     };
-    //
-    //
-    //
-    //     // Manually call handle method for HiMsg
-    //     Handler::<HiMsg>::handle(&mut sample_actor, HiMsg, &mut ());
-    //     // Manually call handle method for ByeMsg
-    //     Handler::<ByeMsg>::handle(&mut sample_actor, ByeMsg, &mut ());
-    //
-    //     // this call will not compile because the actor does not implement the Handler trait for the message type
-    //     // Handler::<String>::handle(&mut sample_actor, "Hello".to_string(), &mut ());
-    // }
+    impl Handler<MsgVariants<'_>> for SampleActor {
+        fn handle(&mut self, msg: MsgVariants, _ctx: &mut Self::Context) {
+            match msg {
+                MsgVariants::SetName(name) => {
+                    self.name = name.to_string();
+                }
+                MsgVariants::Hi => {
+                    self.result = format!("Hi, {}", self.name);
+                }
+                MsgVariants::Bye => {
+                    self.result = format!("Bye, {}", self.name);
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn test_sample_actor() {
+        let mut sample_actor = SampleActor {
+            name: "".to_string(),
+            result: "".to_string(),
+        };
+        let mut ctx = TestContext;
+
+        Handler::<MsgVariants>::handle(&mut sample_actor, MsgVariants::SetName("Alice"), &mut ctx);
+        assert_eq!(sample_actor.name, "Alice");
+        assert_eq!(sample_actor.result, "");
+        Handler::<MsgVariants>::handle(&mut sample_actor, MsgVariants::Hi, &mut ctx);
+        assert_eq!(sample_actor.name, "Alice");
+        assert_eq!(sample_actor.result, "Hi, Alice");
+        Handler::<MsgVariants>::handle(&mut sample_actor, MsgVariants::Bye, &mut ctx);
+        assert_eq!(sample_actor.name, "Alice");
+        assert_eq!(sample_actor.result, "Bye, Alice");
+
+        Handler::<HiMsg>::handle(&mut sample_actor, HiMsg, &mut ctx);
+        assert_eq!(sample_actor.name, "Alice");
+        assert_eq!(sample_actor.result, "Hi, Alice");
+        Handler::<ByeMsg>::handle(&mut sample_actor, ByeMsg, &mut ctx);
+        assert_eq!(sample_actor.name, "Alice");
+        assert_eq!(sample_actor.result, "Bye, Alice");
+
+        // this call will not compile because the actor does not implement the Handler trait for the message type
+        // Handler::<String>::handle(&mut sample_actor, "Hello".to_string(), &mut ());
+    }
 }

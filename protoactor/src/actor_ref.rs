@@ -2,15 +2,13 @@ use std::any::Any;
 use std::future::Future;
 use std::sync::Arc;
 
-use futures::{FutureExt, TryFutureExt};
+use futures::FutureExt;
 use tokio::sync::oneshot::error::RecvError;
 
-use crate::actor::{Context, Handler};
+use crate::actor::{Actor, Handler};
 use crate::actor_system::root_context::RootContext;
-use crate::config::NO_HOST;
 use crate::mailbox::MailboxSender;
 use crate::message::{Message, MessageEnvelope};
-use crate::prelude::Actor;
 use crate::proto::Pid;
 
 /// The ActorRef struct is a reference to an actor process.
